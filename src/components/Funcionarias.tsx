@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Users, Plus, Edit, Eye, Phone, MapPin, Loader2, User, BadgeInfo, Wallet, Bus, Ticket, ShieldCheck, ShieldX, Search, Vote, Baby, Trash2, CalendarPlus, CalendarX } from "lucide-react";
+import { Users, Plus, Edit, Eye, Phone, MapPin, Loader2, User, BadgeInfo, Wallet, Bus, Ticket, ShieldCheck, ShieldX, Search, Vote, Baby, Trash2, CalendarPlus, CalendarX, Fingerprint } from "lucide-react";
 import { useFuncionarias, type Funcionaria } from "@/hooks/useFuncionarias";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
@@ -180,18 +180,26 @@ export function Funcionarias() {
             <DialogHeader><DialogTitle>{editingFuncionaria? 'Editar Funcionária' : detalhesFuncionaria? 'Detalhes da Funcionária' : 'Nova Funcionária'}</DialogTitle></DialogHeader>
             {detalhesFuncionaria ? (
               <div className="space-y-6 pt-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-6">
                   <div className="flex items-center gap-3"><User className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Nome Completo</p><p className="font-medium">{detalhesFuncionaria.nome}</p></div></div>
                   <div className="flex items-center gap-3"><BadgeInfo className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">CPF</p><p className="font-medium">{formatCPF(detalhesFuncionaria.cpf)}</p></div></div>
                   <div className="flex items-center gap-3"><Fingerprint className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">RG</p><p className="font-medium">{detalhesFuncionaria.rg || 'Não informado'}</p></div></div>
+                  
                   <div className="flex items-center gap-3 col-span-full"><MapPin className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Endereço</p><p className="font-medium">{detalhesFuncionaria.endereco || 'Não informado'}</p></div></div>
+                  
                   <Separator className="col-span-full" />
+                  
                   <div className="flex items-center gap-3"><Phone className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Telefone</p><p className="font-medium">{formatPhoneNumber(detalhesFuncionaria.telefone)}</p></div></div>
                   <div className="flex items-center gap-3"><Ticket className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">PIS</p><p className="font-medium">{detalhesFuncionaria.pis || 'Não informado'}</p></div></div>
                   <div className="flex items-center gap-3"><Vote className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Título de Eleitor</p><p className="font-medium">{detalhesFuncionaria.titulo_eleitor || 'Não informado'}</p></div></div>
+                  
                   <div className="flex items-center gap-3"><CalendarPlus className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Data de Admissão</p><p className="font-medium">{formatDate(detalhesFuncionaria.data_de_admissao)}</p></div></div>
-                  {detalhesFuncionaria.status === 'Inativa' && detalhesFuncionaria.data_de_desligamento && <div className="flex items-center gap-3"><CalendarX className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Data de Desligamento</p><p className="font-medium">{formatDate(detalhesFuncionaria.data_de_desligamento)}</p></div></div>}
+                  
+                  {detalhesFuncionaria.status === 'Inativa' && detalhesFuncionaria.data_de_desligamento && 
+                    <div className="flex items-center gap-3"><CalendarX className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Data de Desligamento</p><p className="font-medium">{formatDate(detalhesFuncionaria.data_de_desligamento)}</p></div></div>
+                  }
                   <div className="flex items-center gap-3"><Wallet className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Salário Base</p><p className="font-medium">R$ {detalhesFuncionaria.salario_base?.toFixed(2) || '0.00'}</p></div></div>
+                  
                   <Separator className="col-span-full" />
                   <div className="flex items-start gap-3 col-span-full"><Baby className="h-5 w-5 text-muted-foreground mt-1" /><div><p className="text-xs text-muted-foreground">Filhos (menores de 14 anos)</p>{(detalhesFuncionaria.cpfs_filhos && detalhesFuncionaria.cpfs_filhos.length > 0 && detalhesFuncionaria.cpfs_filhos[0] !== '') ? (<ul className="list-disc pl-5 font-medium">{detalhesFuncionaria.cpfs_filhos.map((cpf, i) => <li key={i}>{formatCPF(cpf)}</li>)}</ul>) : (<p className="font-medium">Nenhum filho informado</p>)}</div></div>
                 </div>
@@ -231,8 +239,7 @@ export function Funcionarias() {
                                 id="status"
                                 checked={formData.status === 'Ativa'}
                                 onCheckedChange={(checked) => {
-                                    const newStatus = checked ? 'Ativa' : 'Inativa';
-                                    setFormData({ ...formData, status: newStatus, data_de_desligamento: checked ? '' : new Date().toISOString().split('T')[0] });
+                                    setFormData({ ...formData, status: checked ? 'Ativa' : 'Inativa', data_de_desligamento: checked ? '' : new Date().toISOString().split('T')[0] });
                                 }}
                             />
                              <Label htmlFor="status">Funcionária {formData.status}</Label>

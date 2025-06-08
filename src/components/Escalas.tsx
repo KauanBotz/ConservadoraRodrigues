@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useEscalas } from '@/hooks/useEscalas';
-import { useFuncionarias } from '@/hooks/useFuncionarias';
-import { useCondominios } from '@/hooks/useCondominios';
+import { useEscalas } from '../hooks/useEscalas';
+import { useFuncionarias } from '../hooks/useFuncionarias';
+import { useCondominios } from '../hooks/useCondominios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,7 +37,6 @@ export function Escalas() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEscala, setEditingEscala] = useState<any>(null);
   
-  // Estados para os filtros
   const [filtroDia, setFiltroDia] = useState('todos');
   const [filtroFuncionario, setFiltroFuncionario] = useState('todos');
   const [filtroCondominio, setFiltroCondominio] = useState('todos');
@@ -112,7 +111,10 @@ export function Escalas() {
     );
   }
 
-  // Lógica para filtrar as escalas
+  // --- FILTRAGEM DE ATIVOS PARA OS MENUS DE SELEÇÃO ---
+  const funcionariasAtivas = funcionarias.filter(f => f.status === 'Ativa');
+  const condominiosAtivos = condominios.filter(c => c.status === 'Ativo');
+
   const escalasFiltradas = escalas.filter(escala => {
     const matchDia = filtroDia === 'todos' || escala.dia_semana === filtroDia;
     const matchFuncionario = filtroFuncionario === 'todos' || escala.id_funcionaria === filtroFuncionario;
@@ -183,13 +185,13 @@ export function Escalas() {
                     <SelectValue placeholder="Selecione uma funcionária" />
                   </SelectTrigger>
                   <SelectContent>
-                    {funcionarias.map((funcionaria) => (
+                    {/* Exibe apenas funcionárias ativas */}
+                    {funcionariasAtivas.map((funcionaria) => (
                       <SelectItem
                         key={funcionaria.id}
                         value={funcionaria.id}
-                        disabled={funcionaria.status !== 'Ativa'}
                       >
-                        {funcionaria.nome} {funcionaria.status !== 'Ativa' ? '(Inativa)' : ''}
+                        {funcionaria.nome}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -206,13 +208,13 @@ export function Escalas() {
                     <SelectValue placeholder="Selecione um condomínio" />
                   </SelectTrigger>
                   <SelectContent>
-                    {condominios.map((condominio) => (
+                    {/* Exibe apenas condomínios ativos */}
+                    {condominiosAtivos.map((condominio) => (
                       <SelectItem
                         key={condominio.id}
                         value={condominio.id}
-                        disabled={condominio.status !== 'Ativo'}
                       >
-                        {condominio.nome} {condominio.status !== 'Ativo' ? '(Inativo)' : ''}
+                        {condominio.nome}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -236,7 +238,6 @@ export function Escalas() {
         </Dialog>
       </div>
       
-      {/* --- SEÇÃO DE FILTROS ADICIONADA --- */}
       <Card>
         <CardHeader>
             <CardTitle>Filtros de Pesquisa</CardTitle>
@@ -260,7 +261,7 @@ export function Escalas() {
                     <SelectTrigger><SelectValue/></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="todos">Todas as funcionárias</SelectItem>
-                        {funcionarias.map(f => (
+                        {funcionariasAtivas.map(f => (
                             <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
                         ))}
                     </SelectContent>
@@ -272,7 +273,7 @@ export function Escalas() {
                     <SelectTrigger><SelectValue/></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="todos">Todos os condomínios</SelectItem>
-                         {condominios.map(c => (
+                         {condominiosAtivos.map(c => (
                             <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                         ))}
                     </SelectContent>

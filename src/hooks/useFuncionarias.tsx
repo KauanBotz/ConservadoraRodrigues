@@ -16,7 +16,6 @@ export interface Funcionaria {
   passagens_mensais: number | null;
   documentos: any;
   status: string;
-  // --- NOVOS CAMPOS ---
   rg: string | null;
   pis: string | null;
   titulo_eleitor: string | null;

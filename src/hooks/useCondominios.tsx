@@ -14,6 +14,7 @@ export interface Condominio {
   email_sindico: string | null;
   telefone_sindico: string | null;
   vencimento_boleto: number | null;
+  cnpj: string | null; // <-- NOVO CAMPO
 }
 
 export function useCondominios() {
