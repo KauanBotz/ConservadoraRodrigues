@@ -3,17 +3,15 @@ import { Users, Building2, Calendar, AlertTriangle, DollarSign, FileText, Loader
 import { useFuncionarias } from "@/hooks/useFuncionarias";
 import { useCondominios } from "@/hooks/useCondominios";
 import { useFaltas } from "@/hooks/useFaltas";
-import { useSalarios } from "@/hooks/useSalarios";
 import { useEscalas } from "@/hooks/useEscalas";
 
 export function Dashboard() {
   const { funcionarias = [], loading: loadingFuncionarias } = useFuncionarias();
   const { condominios = [], loading: loadingCondominios } = useCondominios();
   const { faltas = [], loading: loadingFaltas } = useFaltas();
-  const { salarios = [], loading: loadingSalarios } = useSalarios();
   const { escalas = [], loading: loadingEscalas } = useEscalas();
 
-  const isLoading = loadingFuncionarias || loadingCondominios || loadingFaltas || loadingSalarios || loadingEscalas;
+  const isLoading = loadingFuncionarias || loadingCondominios || loadingFaltas || loadingEscalas;
 
   if (isLoading) {
     return (
@@ -43,17 +41,22 @@ export function Dashboard() {
       return total;
     }
     const salarioBase = Number(funcionaria.salario_base) || 0;
-    const faltasDaFunc = faltas.filter(f =>
+    const valorDiario = salarioBase / 30;
+
+    const faltasComDesconto = faltas.filter(f =>
       f.id_funcionaria === funcionaria.id &&
-      new Date(f.data).getMonth() === mesAtual &&
-      new Date(f.data).getFullYear() === anoAtual &&
-      f.justificativa === false
+      new Date(f.data).getUTCMonth() === mesAtual &&
+      new Date(f.data).getUTCFullYear() === anoAtual &&
+      f.desconto_aplicado === true
     );
-    const desconto = faltasDaFunc.length * (salarioBase / 30);
-    return total + (salarioBase - desconto);
+    
+    // Lógica de desconto atualizada para incluir DSR (x2)
+    const totalDescontos = faltasComDesconto.length * (valorDiario * 2);
+    const salarioFinal = salarioBase - totalDescontos;
+
+    return total + salarioFinal;
   }, 0);
 
-  // --- LÓGICA DE CÁLCULO CORRIGIDA ---
   const totalPassagens = funcionarias.reduce((total, funcionaria) => {
     if (funcionaria.status !== 'Ativa') {
       return total;
@@ -119,7 +122,7 @@ export function Dashboard() {
                   <div>
                     <p className="font-medium">{falta.funcionaria?.nome}</p>
                     <p className="text-sm text-muted-foreground">
-                      {new Date(falta.data).toLocaleDateString('pt-BR')} - {falta.justificativa ? "Com justificativa" : "Sem justificativa"}
+                      {new Date(falta.data).toLocaleDateString('pt-BR', {timeZone: 'UTC'})} - {falta.justificativa ? "Com justificativa" : "Sem justificativa"}
                     </p>
                   </div>
                   <span className={`text-xs px-2 py-1 rounded ${falta.justificativa ? "bg-secondary/20 text-secondary" : "bg-destructive/20 text-destructive"}`}>

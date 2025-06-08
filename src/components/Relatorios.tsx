@@ -34,8 +34,6 @@ export function Relatorios() {
       dados_json.funcionarias = funcionarias
         .filter(f => f.status === 'Ativa')
         .map(f => {
-          // --- LÓGICA DE DESCONTO CORRIGIDA ---
-          // Agora, o desconto é aplicado somente se o campo 'desconto_aplicado' for verdadeiro.
           const faltasComDesconto = faltas.filter(falta =>
             falta.id_funcionaria === f.id &&
             new Date(falta.data).getUTCMonth() + 1 === parseInt(month) &&
@@ -43,7 +41,12 @@ export function Relatorios() {
             falta.desconto_aplicado === true 
           );
           const salarioBase = f.salario_base || 0;
-          const descontos = faltasComDesconto.length * (salarioBase / 30);
+          
+          // --- LÓGICA DE DESCONTO CORRIGIDA COM BASE NA SUA REGRA ---
+          // Desconto do dia da falta + Descanso Semanal Remunerado (DSR)
+          const valorDiario = salarioBase / 30;
+          const descontos = faltasComDesconto.length * (valorDiario * 2);
+
           const custoPassagens = (f.passagens_mensais || 0) * (f.valor_passagem || 0);
           const salarioFinal = salarioBase - descontos;
           return { nome: f.nome, salarioBase, custoPassagens, descontos, salarioFinal, faltas: faltasComDesconto.length };

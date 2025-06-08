@@ -48,8 +48,7 @@ export function Faltas() {
     data: '',
     motivo: '',
     justificativa: false,
-    desconto_aplicado: false,
-    id_funcionaria: ''
+    desconto_aplicado: true,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,6 +60,11 @@ export function Faltas() {
         return;
       }
 
+      if (!formData.justificativa && !formData.desconto_aplicado) {
+        alert("Uma falta deve ser justificada ou ter o desconto aplicado. Por favor, selecione uma das opções.");
+        return;
+      }
+      
       const faltaData = {
         data: formData.data,
         motivo: formData.motivo || null,
@@ -69,11 +73,6 @@ export function Faltas() {
         id_funcionaria: formData.id_funcionaria || null
       };
       
-      if (!formData.justificativa && !formData.desconto_aplicado) {
-        alert("Selecione se a falta é justificada ou se terá desconto.");
-        return;
-      }
-      
       if (editingFalta) {
         await updateFalta(editingFalta.id, faltaData);
       } else {
@@ -81,14 +80,6 @@ export function Faltas() {
       }
 
       setIsDialogOpen(false);
-      setEditingFalta(null);
-      setFormData({
-        data: '',
-        motivo: '',
-        justificativa: false,
-        desconto_aplicado: false,
-        id_funcionaria: ''
-      });
     } catch (error) {
       console.error('Erro ao salvar falta:', error);
     }
@@ -100,7 +91,7 @@ export function Faltas() {
       data: falta.data,
       motivo: falta.motivo || '',
       justificativa: falta.justificativa || false,
-      desconto_aplicado: falta.desconto_aplicado || false,
+      desconto_aplicado: falta.desconto_aplicado === null ? true : falta.desconto_aplicado,
       id_funcionaria: falta.id_funcionaria || ''
     });
     setIsDialogOpen(true);
@@ -117,7 +108,7 @@ export function Faltas() {
       data: '',
       motivo: '',
       justificativa: false,
-      desconto_aplicado: false,
+      desconto_aplicado: true,
       id_funcionaria: ''
     });
     setEditingFalta(null);
@@ -207,21 +198,23 @@ export function Faltas() {
                   <Checkbox
                     id="justificativa"
                     checked={formData.justificativa}
-                    onCheckedChange={(checked) =>
-                      setFormData({ ...formData, justificativa: !!checked, desconto_aplicado: !!checked ? false : formData.desconto_aplicado })
-                    }
+                    onCheckedChange={(checked) => {
+                        const isChecked = !!checked;
+                        setFormData({ ...formData, justificativa: isChecked, desconto_aplicado: !isChecked });
+                    }}
                   />
-                  <Label htmlFor="justificativa">Falta justificada</Label>
+                  <Label htmlFor="justificativa">Falta justificada (sem desconto)</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="desconto_aplicado"
                     checked={formData.desconto_aplicado}
-                    onCheckedChange={(checked) =>
-                      setFormData({ ...formData, desconto_aplicado: !!checked, justificativa: !!checked ? false : formData.justificativa })
-                    }
+                    onCheckedChange={(checked) => {
+                        const isChecked = !!checked;
+                        setFormData({ ...formData, desconto_aplicado: isChecked, justificativa: !isChecked });
+                    }}
                   />
-                  <Label htmlFor="desconto_aplicado">Aplicar desconto</Label>
+                  <Label htmlFor="desconto_aplicado">Aplicar desconto (não justificada)</Label>
                 </div>
               </div>
 
@@ -257,7 +250,6 @@ export function Faltas() {
                     <SelectTrigger><SelectValue placeholder="Todos os meses" /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="todos">Todos os meses</SelectItem>
-                        {/* --- LÓGICA DE CAPITALIZAÇÃO APLICADA AQUI --- */}
                         {[...Array(12)].map((_, i) => {
                           const monthName = new Date(0, i).toLocaleString('pt-BR', { month: 'long' });
                           const capitalizedMonthName = monthName.charAt(0).toUpperCase() + monthName.slice(1);
@@ -283,9 +275,9 @@ export function Faltas() {
               <TableRow>
                 <TableHead>Data</TableHead>
                 <TableHead>Funcionária</TableHead>
-                <TableHead>Motivo</TableHead>
                 <TableHead>Justificada</TableHead>
                 <TableHead>Desconto Aplicado</TableHead>
+                <TableHead>Valor Desconto</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -295,12 +287,12 @@ export function Faltas() {
                 <TableRow key={falta.id}>
                   <TableCell>{new Date(falta.data).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</TableCell>
                   <TableCell>{falta.funcionaria?.nome || 'N/A'}</TableCell>
-                  <TableCell>{falta.motivo || 'N/A'}</TableCell>
                   <TableCell>
+                    {/* --- CORES CORRIGIDAS --- */}
                     <span className={`px-2 py-1 rounded text-xs ${
                       falta.justificativa
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
+                        ? 'bg-green-100 text-green-800'  // Justificada: Sim -> Verde
+                        : 'bg-red-100 text-red-800'      // Justificada: Não -> Vermelho
                     }`}>
                       {falta.justificativa ? 'Sim' : 'Não'}
                     </span>
@@ -308,12 +300,21 @@ export function Faltas() {
                   <TableCell>
                   <span className={`px-2 py-1 rounded text-xs ${
                         falta.desconto_aplicado 
-                          ? 'bg-red-100 text-red-800' 
-                          : 'bg-green-100 text-green-800'
+                          ? 'bg-red-100 text-red-800'      // Desconto: Sim -> Vermelho
+                          : 'bg-green-100 text-green-800'  // Desconto: Não -> Verde
                       }`}>
                         {falta.desconto_aplicado ? 'Sim' : 'Não'}
                       </span>
                   </TableCell>
+                  <TableCell>
+                  {(() => {
+                    const salario = falta.funcionaria?.salario_base || 0;
+                    const aplicavel = falta.desconto_aplicado === true;
+                    const valorDia = salario / 30;
+                    const desconto = aplicavel ? (valorDia * 2) : 0; 
+                    return `R$ ${desconto.toFixed(2)}`;
+                  })()}
+                </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
                       <Button variant="outline" size="sm" onClick={() => handleEdit(falta)}><Edit className="h-4 w-4" /></Button>

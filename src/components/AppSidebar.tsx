@@ -61,15 +61,10 @@ export function AppSidebar({ activeSection, onSectionChange }: AppSidebarProps) 
   return (
     <Sidebar className="border-r border-sidebar-border">
       <SidebarHeader className="p-6">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 conservadora-gradient rounded-lg flex items-center justify-center">
-            <Building2 className="w-5 h-5 text-white" />
-          </div>
           <div>
             <h2 className="text-lg font-bold text-sidebar-foreground">CONSERVADORA</h2>
             <p className="text-sm text-sidebar-foreground/70">RODRIGUES</p>
           </div>
-        </div>
       </SidebarHeader>
       
       <SidebarContent>
