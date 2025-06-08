@@ -232,7 +232,7 @@ export function Funcionarias() {
                                 checked={formData.status === 'Ativa'}
                                 onCheckedChange={(checked) => {
                                     const newStatus = checked ? 'Ativa' : 'Inativa';
-                                    setFormData({ ...formData, status: newStatus });
+                                    setFormData({ ...formData, status: newStatus, data_de_desligamento: checked ? '' : new Date().toISOString().split('T')[0] });
                                 }}
                             />
                              <Label htmlFor="status">Funcionária {formData.status}</Label>

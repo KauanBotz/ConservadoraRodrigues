@@ -16,6 +16,7 @@ export interface Funcionaria {
   passagens_mensais: number | null;
   documentos: any;
   status: string;
+  // --- NOVOS CAMPOS ---
   rg: string | null;
   pis: string | null;
   titulo_eleitor: string | null;
@@ -64,7 +65,7 @@ export function useFuncionarias() {
 
       if (error) throw error;
 
-      await fetchFuncionarias(); // Força a atualização da lista inteira
+      await fetchFuncionarias(); // Força a atualização completa da lista
       toast({
         title: 'Funcionária cadastrada',
         description: 'Funcionária adicionada com sucesso!',
