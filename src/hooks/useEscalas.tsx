@@ -5,17 +5,14 @@ import { useToast } from '@/hooks/use-toast';
 
 export interface Escala {
   id: string;
-  data: string;
+  dia_da_semana: string;
   horas_trabalho: number;
   id_condominio: string | null;
   id_funcionaria: string | null;
-  funcionaria?: {
-    nome: string;
-  };
-  condominio?: {
-    nome: string;
-  };
+  funcionaria?: { nome: string };
+  condominio?: { nome: string };
 }
+
 
 export function useEscalas() {
   const [escalas, setEscalas] = useState<Escala[]>([]);
@@ -31,7 +28,7 @@ export function useEscalas() {
           funcionaria:funcionarias(nome),
           condominio:condominios(nome)
         `)
-        .order('data', { ascending: false });
+        .order('dia_semana', { ascending: true });
 
       if (error) throw error;
       setEscalas(data || []);

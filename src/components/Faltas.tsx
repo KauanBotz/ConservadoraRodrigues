@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useFaltas } from '@/hooks/useFaltas';
 import { useFuncionarias } from '@/hooks/useFuncionarias';
@@ -8,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
   DialogContent,
@@ -30,33 +30,59 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, Edit, Trash2, AlertTriangle, Loader2, Upload, FileText } from 'lucide-react';
+import { Plus, Edit, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 
 export function Faltas() {
   const { faltas, loading, createFalta, updateFalta, deleteFalta } = useFaltas();
   const { funcionarias } = useFuncionarias();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingFalta, setEditingFalta] = useState<any>(null);
-  const [formData, setFormData] = useState({
+  const [filtroFuncionario, setFiltroFuncionario] = useState('');
+  const [filtroMes, setFiltroMes] = useState('');
+  const [formData, setFormData] = useState< 
+  
+  {
+    
+    data: string;
+    motivo: string;
+    justificativa: boolean;
+    desconto_aplicado: boolean;
+    id_funcionaria: string;
+  }>({
     data: '',
     motivo: '',
     justificativa: false,
     desconto_aplicado: false,
-    anexo: '',
     id_funcionaria: ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     try {
+      if (!formData.id_funcionaria) {
+        alert("Selecione uma funcionária antes de salvar.");
+        return;
+      }
+
       const faltaData = {
         data: formData.data,
         motivo: formData.motivo || null,
         justificativa: formData.justificativa,
         desconto_aplicado: formData.desconto_aplicado,
-        anexo: formData.anexo || null,
         id_funcionaria: formData.id_funcionaria || null
       };
+
+      if (!formData.id_funcionaria) {
+        alert("Selecione uma funcionária antes de salvar.");
+        return;
+      }
+      
+      if (!formData.justificativa && !formData.desconto_aplicado) {
+        alert("Selecione se a falta é justificada ou se terá desconto.");
+        return;
+      }
+      
 
       if (editingFalta) {
         await updateFalta(editingFalta.id, faltaData);
@@ -66,13 +92,12 @@ export function Faltas() {
 
       setIsDialogOpen(false);
       setEditingFalta(null);
-      setFormData({ 
-        data: '', 
-        motivo: '', 
-        justificativa: false, 
-        desconto_aplicado: false, 
-        anexo: '', 
-        id_funcionaria: '' 
+      setFormData({
+        data: '',
+        motivo: '',
+        justificativa: false,
+        desconto_aplicado: false,
+        id_funcionaria: ''
       });
     } catch (error) {
       console.error('Erro ao salvar falta:', error);
@@ -86,7 +111,6 @@ export function Faltas() {
       motivo: falta.motivo || '',
       justificativa: falta.justificativa || false,
       desconto_aplicado: falta.desconto_aplicado || false,
-      anexo: falta.anexo || '',
       id_funcionaria: falta.id_funcionaria || ''
     });
     setIsDialogOpen(true);
@@ -99,13 +123,12 @@ export function Faltas() {
   };
 
   const resetForm = () => {
-    setFormData({ 
-      data: '', 
-      motivo: '', 
-      justificativa: false, 
-      desconto_aplicado: false, 
-      anexo: '', 
-      id_funcionaria: '' 
+    setFormData({
+      data: '',
+      motivo: '',
+      justificativa: false,
+      desconto_aplicado: false,
+      id_funcionaria: ''
     });
     setEditingFalta(null);
   };
@@ -117,6 +140,13 @@ export function Faltas() {
       </div>
     );
   }
+
+  const faltasFiltradas = faltas.filter(f => {
+    const mesmaFunc = !filtroFuncionario || filtroFuncionario === 'todas' || f.id_funcionaria === filtroFuncionario;
+    const mesmoMes = !filtroMes || filtroMes === 'todos' || new Date(f.data).getMonth() + 1 === parseInt(filtroMes, 10);
+    return mesmaFunc && mesmoMes;
+  });
+  
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -130,7 +160,7 @@ export function Faltas() {
           <AlertTriangle className="h-6 w-6 text-primary" />
           <span className="text-lg font-medium">Total de faltas: {faltas.length}</span>
         </div>
-        
+
         <Dialog open={isDialogOpen} onOpenChange={(open) => {
           setIsDialogOpen(open);
           if (!open) resetForm();
@@ -148,16 +178,17 @@ export function Faltas() {
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="data">Data da Falta</Label>
-                <Input
-                  id="data"
-                  type="date"
-                  value={formData.data}
-                  onChange={(e) => setFormData({ ...formData, data: e.target.value })}
-                  required
-                />
-              </div>
+
+            <div className="space-y-2">
+            <Label htmlFor="data">Data</Label>
+            <Input
+              id="data"
+              type="date"
+              required
+              value={formData.data}
+              onChange={(e) => setFormData({ ...formData, data: e.target.value })}
+            />
+          </div>
 
               <div className="space-y-2">
                 <Label htmlFor="funcionaria">Funcionária</Label>
@@ -169,15 +200,15 @@ export function Faltas() {
                     <SelectValue placeholder="Selecione uma funcionária" />
                   </SelectTrigger>
                   <SelectContent>
-                    {funcionarias.map((funcionaria) => (
-                      <SelectItem key={funcionaria.id} value={funcionaria.id}>
-                        {funcionaria.nome}
+                    {funcionarias.map((f) => (
+                      <SelectItem key={f.id} value={f.id}>
+                        {f.nome} {f.status !== 'Ativa' ? '(Inativa)' : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="motivo">Motivo da Falta</Label>
                 <Textarea
@@ -188,28 +219,12 @@ export function Faltas() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="anexo">Anexo (URL do documento)</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="anexo"
-                    type="url"
-                    value={formData.anexo}
-                    onChange={(e) => setFormData({ ...formData, anexo: e.target.value })}
-                    placeholder="https://exemplo.com/documento.pdf"
-                  />
-                  <Button type="button" variant="outline" size="sm">
-                    <Upload className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
               <div className="space-y-3">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="justificativa"
                     checked={formData.justificativa}
-                    onCheckedChange={(checked) => 
+                    onCheckedChange={(checked) =>
                       setFormData({ ...formData, justificativa: !!checked })
                     }
                   />
@@ -220,7 +235,7 @@ export function Faltas() {
                   <Checkbox
                     id="desconto_aplicado"
                     checked={formData.desconto_aplicado}
-                    onCheckedChange={(checked) => 
+                    onCheckedChange={(checked) =>
                       setFormData({ ...formData, desconto_aplicado: !!checked })
                     }
                   />
@@ -245,6 +260,49 @@ export function Faltas() {
         </Dialog>
       </div>
 
+      <div className="flex flex-col md:flex-row gap-4 mb-4">
+      <div className="flex-1">
+        <Label>Filtrar por Funcionária</Label>
+        <Select
+          value={filtroFuncionario}
+          onValueChange={setFiltroFuncionario}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Todas" />
+          </SelectTrigger>
+          <SelectContent>
+          <SelectItem value="todas">Todas</SelectItem>
+            {funcionarias.map(f => (
+              <SelectItem key={f.id} value={f.id}>
+                {f.nome}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex-1">
+        <Label>Filtrar por Mês</Label>
+        <Select
+          value={filtroMes}
+          onValueChange={setFiltroMes}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Todos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos</SelectItem>
+            {[...Array(12)].map((_, i) => (
+              <SelectItem key={i + 1} value={(i + 1).toString()}>
+                {`${i + 1}`.padStart(2, '0')}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+
+
       <Card>
         <CardHeader>
           <CardTitle>Lista de Faltas</CardTitle>
@@ -258,50 +316,38 @@ export function Faltas() {
                 <TableHead>Motivo</TableHead>
                 <TableHead>Justificada</TableHead>
                 <TableHead>Desconto</TableHead>
-                <TableHead>Anexo</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {faltas.map((falta) => (
+            {faltasFiltradas.map((falta) => (
                 <TableRow key={falta.id}>
-                  <TableCell>
-                    {new Date(falta.data).toLocaleDateString('pt-BR')}
-                  </TableCell>
+                  <TableCell>{new Date(falta.data).toLocaleDateString('pt-BR')}</TableCell>
                   <TableCell>{falta.funcionaria?.nome || 'N/A'}</TableCell>
                   <TableCell>{falta.motivo || 'N/A'}</TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded text-xs ${
-                      falta.justificativa 
-                        ? 'bg-green-100 text-green-800' 
+                      falta.justificativa
+                        ? 'bg-green-100 text-green-800'
                         : 'bg-red-100 text-red-800'
                     }`}>
                       {falta.justificativa ? 'Sim' : 'Não'}
                     </span>
                   </TableCell>
                   <TableCell>
-                    <span className={`px-2 py-1 rounded text-xs ${
-                      falta.desconto_aplicado 
-                        ? 'bg-red-100 text-red-800' 
-                        : 'bg-green-100 text-green-800'
-                    }`}>
-                      {falta.desconto_aplicado ? 'Sim' : 'Não'}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    {falta.anexo ? (
-                      <a 
-                        href={falta.anexo} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        <FileText className="h-4 w-4" />
-                      </a>
-                    ) : (
-                      'N/A'
-                    )}
-                  </TableCell>
+                  {(() => {
+                    const salario = falta.funcionaria?.salario_base || 0;
+                    const aplicavel = falta.desconto_aplicado && !falta.justificativa;
+                    const valorDia = salario / 30;
+                    const desconto = aplicavel ? valorDia * 2 : 0;
+                    return `R$ ${desconto.toFixed(2)}`;
+                  })()}
+                </TableCell>
+
+
+
+
+
                   <TableCell>
                     <div className="flex space-x-2">
                       <Button

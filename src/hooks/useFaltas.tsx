@@ -12,7 +12,9 @@ export interface Falta {
   anexo: string | null;
   id_funcionaria: string | null;
   funcionaria?: {
+    id: string;
     nome: string;
+    salario_base: number;
   };
 }
 
@@ -27,8 +29,9 @@ export function useFaltas() {
         .from('faltas')
         .select(`
           *,
-          funcionaria:funcionarias(nome)
+          funcionaria:funcionarias(id, nome, salario_base)
         `)
+        
         .order('data', { ascending: false });
 
       if (error) throw error;
@@ -51,8 +54,8 @@ export function useFaltas() {
         .insert([falta])
         .select(`
           *,
-          funcionaria:funcionarias(nome)
-        `)
+          funcionaria:funcionarias(id, nome, salario_base)
+        `)        
         .single();
 
       if (error) throw error;
@@ -81,8 +84,8 @@ export function useFaltas() {
         .eq('id', id)
         .select(`
           *,
-          funcionaria:funcionarias(nome)
-        `)
+          funcionaria:funcionarias(id, nome, salario_base)
+        `)        
         .single();
 
       if (error) throw error;

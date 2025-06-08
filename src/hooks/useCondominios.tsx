@@ -1,15 +1,15 @@
-
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export interface Condominio {
   id: string;
   nome: string;
   endereco: string;
   valor_servico: number | null;
-  recebe_nota_fiscal: boolean | null;
+  recebe_nota_fiscal: boolean;
   contrato_digital: string | null;
+  status: 'Ativo' | 'Inativo';
 }
 
 export function useCondominios() {
@@ -21,7 +21,7 @@ export function useCondominios() {
     try {
       const { data, error } = await supabase
         .from('condominios')
-        .select('*')
+        .select('*') // sem filtro de status
         .order('nome');
 
       if (error) throw error;
@@ -41,24 +41,16 @@ export function useCondominios() {
     try {
       const { data, error } = await supabase
         .from('condominios')
-        .insert([condominio])
+        .insert([{ ...condominio, status: 'Ativo' }])
         .select()
         .single();
 
       if (error) throw error;
-
       setCondominios(prev => [...prev, data]);
-      toast({
-        title: "Condomínio cadastrado",
-        description: "Condomínio adicionado com sucesso!",
-      });
+      toast({ title: "Condomínio cadastrado", description: "Condomínio adicionado com sucesso!" });
       return data;
     } catch (error: any) {
-      toast({
-        title: "Erro ao cadastrar condomínio",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao cadastrar condomínio", description: error.message, variant: "destructive" });
       throw error;
     }
   };
@@ -73,57 +65,22 @@ export function useCondominios() {
         .single();
 
       if (error) throw error;
-
       setCondominios(prev => prev.map(c => c.id === id ? data : c));
-      toast({
-        title: "Condomínio atualizado",
-        description: "Dados atualizados com sucesso!",
-      });
+      toast({ title: "Condomínio atualizado", description: "Dados atualizados com sucesso!" });
       return data;
     } catch (error: any) {
-      toast({
-        title: "Erro ao atualizar condomínio",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao atualizar condomínio", description: error.message, variant: "destructive" });
       throw error;
     }
   };
 
-  const deleteCondominio = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('condominios')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setCondominios(prev => prev.filter(c => c.id !== id));
-      toast({
-        title: "Condomínio removido",
-        description: "Condomínio removido com sucesso!",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Erro ao remover condomínio",
-        description: error.message,
-        variant: "destructive",
-      });
-      throw error;
-    }
-  };
-
-  useEffect(() => {
-    fetchCondominios();
-  }, []);
+  useEffect(() => { fetchCondominios(); }, []);
 
   return {
     condominios,
     loading,
     createCondominio,
     updateCondominio,
-    deleteCondominio,
     refetch: fetchCondominios,
   };
 }

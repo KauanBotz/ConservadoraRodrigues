@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +14,7 @@ export interface Funcionaria {
   salario_base: number | null;
   valor_passagem: number | null;
   documentos: any;
+  status: string;
 }
 
 export function useFuncionarias() {
@@ -23,19 +23,20 @@ export function useFuncionarias() {
   const { toast } = useToast();
 
   const fetchFuncionarias = async () => {
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('funcionarias')
-        .select('*')
+        .select('*') 
         .order('nome');
-
+  
       if (error) throw error;
       setFuncionarias(data || []);
     } catch (error: any) {
       toast({
-        title: "Erro ao carregar funcionárias",
+        title: 'Erro ao carregar funcionárias',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -54,15 +55,15 @@ export function useFuncionarias() {
 
       setFuncionarias(prev => [...prev, data]);
       toast({
-        title: "Funcionária cadastrada",
-        description: "Funcionária adicionada com sucesso!",
+        title: 'Funcionária cadastrada',
+        description: 'Funcionária adicionada com sucesso!',
       });
       return data;
     } catch (error: any) {
       toast({
-        title: "Erro ao cadastrar funcionária",
+        title: 'Erro ao cadastrar funcionária',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       });
       throw error;
     }
@@ -79,17 +80,17 @@ export function useFuncionarias() {
 
       if (error) throw error;
 
-      setFuncionarias(prev => prev.map(f => f.id === id ? data : f));
+      setFuncionarias(prev => prev.map(f => (f.id === id ? data : f)));
       toast({
-        title: "Funcionária atualizada",
-        description: "Dados atualizados com sucesso!",
+        title: 'Funcionária atualizada',
+        description: 'Dados atualizados com sucesso!',
       });
       return data;
     } catch (error: any) {
       toast({
-        title: "Erro ao atualizar funcionária",
+        title: 'Erro ao atualizar funcionária',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       });
       throw error;
     }
@@ -106,14 +107,40 @@ export function useFuncionarias() {
 
       setFuncionarias(prev => prev.filter(f => f.id !== id));
       toast({
-        title: "Funcionária removida",
-        description: "Funcionária removida com sucesso!",
+        title: 'Funcionária removida',
+        description: 'Funcionária removida com sucesso!',
       });
     } catch (error: any) {
       toast({
-        title: "Erro ao remover funcionária",
+        title: 'Erro ao remover funcionária',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
+      });
+      throw error;
+    }
+  };
+
+  const inativarFuncionaria = async (id: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('funcionarias')
+        .update({ status: 'Inativa' })
+        .eq('id', id)
+        .select()
+        .single();
+  
+      if (error) throw error;
+  
+      setFuncionarias(prev => prev.map(f => (f.id === id ? data : f)));
+      toast({
+        title: 'Funcionária inativada',
+        description: 'Status alterado para Inativa.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao inativar funcionária',
+        description: error.message,
+        variant: 'destructive',
       });
       throw error;
     }
@@ -129,6 +156,7 @@ export function useFuncionarias() {
     createFuncionaria,
     updateFuncionaria,
     deleteFuncionaria,
+    inativarFuncionaria,
     refetch: fetchFuncionarias,
   };
 }

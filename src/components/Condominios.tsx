@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +18,7 @@ export function Condominios() {
     endereco: '',
     valor_servico: '',
     recebe_nota_fiscal: false,
+    status: 'Ativo' as 'Ativo' | 'Inativo',
   });
 
   const handleEdit = (condominio: Condominio) => {
@@ -28,6 +28,7 @@ export function Condominios() {
       endereco: condominio.endereco,
       valor_servico: condominio.valor_servico?.toString() || '',
       recebe_nota_fiscal: condominio.recebe_nota_fiscal || false,
+      status: condominio.status === 'Inativo' ? 'Inativo' : 'Ativo',
     });
     setIsDialogOpen(true);
   };
@@ -39,19 +40,21 @@ export function Condominios() {
       endereco: '',
       valor_servico: '',
       recebe_nota_fiscal: false,
+      status: 'Ativo',
     });
     setIsDialogOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const condominioData = {
       nome: formData.nome,
       endereco: formData.endereco,
       valor_servico: formData.valor_servico ? parseFloat(formData.valor_servico) : null,
       recebe_nota_fiscal: formData.recebe_nota_fiscal,
       contrato_digital: null,
+      status: formData.status,
     };
 
     try {
@@ -88,7 +91,7 @@ export function Condominios() {
           </h1>
           <p className="text-muted-foreground">Gerencie os condomínios atendidos pela conservadora</p>
         </div>
-        
+
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={handleAddNew} className="bg-primary hover:bg-primary/90">
@@ -106,43 +109,45 @@ export function Condominios() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="nome">Nome do Condomínio</Label>
-                  <Input 
-                    id="nome" 
+                  <Input
+                    id="nome"
                     value={formData.nome}
-                    onChange={(e) => setFormData({...formData, nome: e.target.value})}
-                    placeholder="Digite o nome do condomínio" 
+                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                    placeholder="Digite o nome do condomínio"
                     required
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="endereco">Endereço Completo</Label>
-                  <Input 
-                    id="endereco" 
+                  <Input
+                    id="endereco"
                     value={formData.endereco}
-                    onChange={(e) => setFormData({...formData, endereco: e.target.value})}
-                    placeholder="Rua, número - Bairro - CEP" 
+                    onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
+                    placeholder="Rua, número - Bairro - CEP"
                     required
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="valor">Valor Mensal (R$)</Label>
-                  <Input 
-                    id="valor" 
-                    type="number" 
-                    step="0.01" 
+                  <Input
+                    id="valor"
+                    type="number"
+                    step="0.01"
                     value={formData.valor_servico}
-                    onChange={(e) => setFormData({...formData, valor_servico: e.target.value})}
-                    placeholder="2500.00" 
+                    onChange={(e) => setFormData({ ...formData, valor_servico: e.target.value })}
+                    placeholder="2500.00"
                   />
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="nota-fiscal" 
-                    checked={formData.recebe_nota_fiscal}
-                    onCheckedChange={(checked) => setFormData({...formData, recebe_nota_fiscal: checked})}
-                  />
-                  <Label htmlFor="nota-fiscal">Recebe Nota Fiscal</Label>
-                </div>
+                <Switch
+                  id="status"
+                  checked={formData.status === 'Ativo'}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, status: checked ? 'Ativo' : 'Inativo' })
+                  }
+                />
+                <Label htmlFor="status">
+                  {formData.status === 'Ativo' ? 'Ativo' : 'Inativo'}
+                </Label>
               </div>
               <div className="flex justify-end gap-2 pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
@@ -157,7 +162,6 @@ export function Condominios() {
         </Dialog>
       </div>
 
-      {/* Resumo Financeiro */}
       <Card className="border-l-4 border-l-secondary">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
@@ -178,26 +182,41 @@ export function Condominios() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {condominios.map((condominio) => (
-          <Card key={condominio.id} className="hover:shadow-lg transition-all duration-300 border-l-4 border-l-primary">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-lg text-foreground">{condominio.nome}</CardTitle>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="default" className="bg-secondary text-secondary-foreground">
-                      Ativo
-                    </Badge>
-                    {condominio.recebe_nota_fiscal && (
-                      <Badge variant="outline" className="text-xs">
-                        Nota Fiscal
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </CardHeader>
-            
+      {condominios
+  .filter(c => c.status === 'Ativo' || c.status === 'Inativo')
+        .map((condominio) => (
+          <Card
+        key={condominio.id}
+        className={`hover:shadow-lg transition-all duration-300 border-l-4 ${
+          condominio.status === 'Ativo'
+            ? 'border-l-yellow-400 bg-white'
+            : 'border-l-red-300 bg-gray-100 text-muted-foreground'
+        }`}
+      >
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle className="text-lg text-foreground">{condominio.nome}</CardTitle>
+            <div className="flex items-center gap-2 mt-1">
+            <Badge
+            className={`text-xs px-2 py-1 rounded ${
+              condominio.status === 'Ativo'
+                ? 'bg-green-100 text-green-800'
+                : 'bg-gray-200 text-gray-600'
+            }`}
+          >
+            {condominio.status}
+          </Badge>
+              {condominio.recebe_nota_fiscal && (
+                <Badge variant="outline" className="text-xs">
+                  Nota Fiscal
+                </Badge>
+              )}
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+
             <CardContent className="space-y-4">
               <div className="space-y-3">
                 <div className="flex items-start gap-2 text-sm">
@@ -207,7 +226,7 @@ export function Condominios() {
                     <span className="font-medium text-xs leading-relaxed">{condominio.endereco}</span>
                   </div>
                 </div>
-                
+
                 {condominio.valor_servico && (
                   <div className="flex items-center gap-2 text-sm">
                     <DollarSign className="w-4 h-4 text-muted-foreground" />
@@ -230,9 +249,9 @@ export function Condominios() {
               </div>
 
               <div className="flex gap-2 pt-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => handleEdit(condominio)}
                   className="flex-1"
                 >

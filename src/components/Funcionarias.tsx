@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,7 @@ export function Funcionarias() {
   const { funcionarias, loading, createFuncionaria, updateFuncionaria } = useFuncionarias();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingFuncionaria, setEditingFuncionaria] = useState<Funcionaria | null>(null);
+  const [detalhesFuncionaria, setDetalhesFuncionaria] = useState<Funcionaria | null>(null);
   const [formData, setFormData] = useState({
     nome: '',
     cpf: '',
@@ -21,6 +21,7 @@ export function Funcionarias() {
     horas_semanais: '',
     salario_base: '',
     valor_passagem: '',
+    status: 'Ativa',
   });
 
   const handleEdit = (funcionaria: Funcionaria) => {
@@ -33,7 +34,14 @@ export function Funcionarias() {
       horas_semanais: funcionaria.horas_semanais?.toString() || '',
       salario_base: funcionaria.salario_base?.toString() || '',
       valor_passagem: funcionaria.valor_passagem?.toString() || '',
+      status: funcionaria.status || 'Ativa',
     });
+    setIsDialogOpen(true);
+  };
+
+  const handleDetails = (funcionaria: Funcionaria) => {
+    setDetalhesFuncionaria(funcionaria);
+    setEditingFuncionaria(null);
     setIsDialogOpen(true);
   };
 
@@ -47,13 +55,14 @@ export function Funcionarias() {
       horas_semanais: '',
       salario_base: '',
       valor_passagem: '',
+      status: 'Ativa',
     });
     setIsDialogOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const funcionariaData = {
       nome: formData.nome,
       cpf: formData.cpf,
@@ -65,6 +74,7 @@ export function Funcionarias() {
       salario_base: formData.salario_base ? parseFloat(formData.salario_base) : null,
       valor_passagem: formData.valor_passagem ? parseFloat(formData.valor_passagem) : null,
       documentos: [],
+      status: formData.status,
     };
 
     try {
@@ -97,7 +107,6 @@ export function Funcionarias() {
           </h1>
           <p className="text-muted-foreground">Gerencie suas funcionárias e suas informações</p>
         </div>
-        
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={handleAddNew} className="bg-primary hover:bg-primary/90">
@@ -108,110 +117,174 @@ export function Funcionarias() {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>
-                {editingFuncionaria ? 'Editar Funcionária' : 'Nova Funcionária'}
+                {editingFuncionaria
+                  ? 'Editar Funcionária'
+                  : detalhesFuncionaria
+                  ? 'Detalhes da Funcionária'
+                  : 'Nova Funcionária'}
               </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="nome">Nome Completo</Label>
-                  <Input 
-                    id="nome" 
-                    value={formData.nome}
-                    onChange={(e) => setFormData({...formData, nome: e.target.value})}
-                    placeholder="Digite o nome completo" 
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cpf">CPF</Label>
-                  <Input 
-                    id="cpf" 
-                    value={formData.cpf}
-                    onChange={(e) => setFormData({...formData, cpf: e.target.value})}
-                    placeholder="000.000.000-00" 
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="telefone">Telefone</Label>
-                  <Input 
-                    id="telefone" 
-                    value={formData.telefone}
-                    onChange={(e) => setFormData({...formData, telefone: e.target.value})}
-                    placeholder="(11) 99999-9999" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="horas">Horas Semanais</Label>
-                  <Input 
-                    id="horas" 
-                    type="number" 
-                    value={formData.horas_semanais}
-                    onChange={(e) => setFormData({...formData, horas_semanais: e.target.value})}
-                    placeholder="40" 
-                  />
-                </div>
-                <div className="space-y-2 col-span-2">
-                  <Label htmlFor="endereco">Endereço</Label>
-                  <Input 
-                    id="endereco" 
-                    value={formData.endereco}
-                    onChange={(e) => setFormData({...formData, endereco: e.target.value})}
-                    placeholder="Rua, número - Bairro" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="salario">Salário Base</Label>
-                  <Input 
-                    id="salario" 
-                    type="number" 
-                    step="0.01" 
-                    value={formData.salario_base}
-                    onChange={(e) => setFormData({...formData, salario_base: e.target.value})}
-                    placeholder="1500.00" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="passagem">Valor da Passagem</Label>
-                  <Input 
-                    id="passagem" 
-                    type="number" 
-                    step="0.01" 
-                    value={formData.valor_passagem}
-                    onChange={(e) => setFormData({...formData, valor_passagem: e.target.value})}
-                    placeholder="4.50" 
-                  />
+
+            {detalhesFuncionaria ? (
+              <div className="space-y-4 text-sm">
+                <p><strong>Nome:</strong> {detalhesFuncionaria.nome}</p>
+                <p><strong>CPF:</strong> {detalhesFuncionaria.cpf}</p>
+                <p><strong>Telefone:</strong> {detalhesFuncionaria.telefone || 'Não informado'}</p>
+                <p><strong>Endereço:</strong> {detalhesFuncionaria.endereco || 'Não informado'}</p>
+                <p><strong>Horas Semanais:</strong> {detalhesFuncionaria.horas_semanais || 'Não informado'}h</p>
+                <p><strong>Salário Base:</strong> R$ {detalhesFuncionaria.salario_base?.toFixed(2) || '0.00'}</p>
+                <p><strong>Status:</strong> {detalhesFuncionaria.status}</p>
+                <p><strong>Valor Passagem:</strong> 
+                  R$ {detalhesFuncionaria.valor_passagem?.toFixed(2) || '0.00'} 
+                  × {(detalhesFuncionaria.horas_semanais ?? 0) / 8} dias/semana 
+                  × 4.5 = 
+                  <strong>
+                    {' '}R$ {(
+                      (detalhesFuncionaria.valor_passagem ?? 0) * 
+                      ((detalhesFuncionaria.horas_semanais ?? 0) / 8) * 4.5
+                    ).toFixed(2)}
+                  </strong> por mês
+                </p>
+                <div className="pt-4 flex justify-end">
+                  <Button variant="outline" onClick={() => {
+                    setIsDialogOpen(false);
+                    setDetalhesFuncionaria(null);
+                  }}>
+                    Fechar
+                  </Button>
                 </div>
               </div>
-              <div className="flex justify-end gap-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit" className="bg-primary hover:bg-primary/90">
-                  {editingFuncionaria ? 'Salvar Alterações' : 'Cadastrar Funcionária'}
-                </Button>
-              </div>
-            </form>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="nome">Nome Completo</Label>
+                    <Input
+                      id="nome"
+                      value={formData.nome}
+                      onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                      placeholder="Digite o nome completo"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cpf">CPF</Label>
+                    <Input
+                      id="cpf"
+                      value={formData.cpf}
+                      onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+                      placeholder="000.000.000-00"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="telefone">Telefone</Label>
+                    <Input
+                      id="telefone"
+                      value={formData.telefone}
+                      onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                      placeholder="(11) 99999-9999"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="horas">Horas Semanais</Label>
+                    <Input
+                      id="horas"
+                      type="number"
+                      value={formData.horas_semanais}
+                      onChange={(e) => setFormData({ ...formData, horas_semanais: e.target.value })}
+                      placeholder="40"
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="endereco">Endereço</Label>
+                    <Input
+                      id="endereco"
+                      value={formData.endereco}
+                      onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
+                      placeholder="Rua, número - Bairro"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="salario">Salário Base</Label>
+                    <Input
+                      id="salario"
+                      type="number"
+                      step="0.01"
+                      value={formData.salario_base}
+                      onChange={(e) => setFormData({ ...formData, salario_base: e.target.value })}
+                      placeholder="1500.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="passagem">Valor da Passagem</Label>
+                    <Input
+                      id="passagem"
+                      type="number"
+                      step="0.01"
+                      value={formData.valor_passagem}
+                      onChange={(e) => setFormData({ ...formData, valor_passagem: e.target.value })}
+                      placeholder="4.50"
+                    />
+                  </div>
+                  {editingFuncionaria && (
+                    <div className="space-y-2">
+                      <Label htmlFor="status">Status</Label>
+                      <select
+                        id="status"
+                        className="w-full border rounded px-2 py-1"
+                        value={formData.status}
+                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                      >
+                        <option value="Ativa">Ativa</option>
+                        <option value="Inativa">Inativa</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button type="button" variant="outline" onClick={() => {
+                    setIsDialogOpen(false);
+                    setEditingFuncionaria(null);
+                  }}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit" className="bg-primary hover:bg-primary/90">
+                    {editingFuncionaria ? 'Salvar Alterações' : 'Cadastrar Funcionária'}
+                  </Button>
+                </div>
+              </form>
+            )}
           </DialogContent>
         </Dialog>
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {funcionarias.map((funcionaria) => (
-          <Card key={funcionaria.id} className="hover:shadow-lg transition-all duration-300 border-l-4 border-l-primary">
+      {funcionarias
+      .map(funcionaria => (
+        <Card
+        key={funcionaria.id}
+        className={`hover:shadow-lg transition-all duration-300 border-l-4 ${
+          funcionaria.status === 'Ativa'
+            ? 'border-l-yellow-400 bg-white'
+            : 'border-l-red-300 bg-gray-100 text-muted-foreground'
+        }`}>
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div>
                   <CardTitle className="text-lg text-foreground">{funcionaria.nome}</CardTitle>
                   <p className="text-sm text-muted-foreground">{funcionaria.cpf}</p>
                 </div>
-                <Badge variant="default" className="bg-secondary text-secondary-foreground">
-                  Ativa
-                </Badge>
+                <Badge
+                className={
+                  funcionaria.status === 'Ativa'
+                    ? 'bg-yellow-400 text-black'
+                    : 'bg-red-300 text-black'
+                }
+              >
+                {funcionaria.status}
+              </Badge>
               </div>
             </CardHeader>
-            
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 gap-3">
                 {funcionaria.telefone && (
@@ -221,7 +294,6 @@ export function Funcionarias() {
                     <span className="font-medium">{funcionaria.telefone}</span>
                   </div>
                 )}
-                
                 {funcionaria.endereco && (
                   <div className="flex items-center gap-2 text-sm">
                     <MapPin className="w-4 h-4 text-muted-foreground" />
@@ -229,7 +301,6 @@ export function Funcionarias() {
                     <span className="font-medium text-xs">{funcionaria.endereco}</span>
                   </div>
                 )}
-                
                 {funcionaria.horas_semanais && (
                   <div className="flex items-center gap-2 text-sm">
                     <Clock className="w-4 h-4 text-muted-foreground" />
@@ -237,7 +308,6 @@ export function Funcionarias() {
                     <span className="font-medium">{funcionaria.horas_semanais}h/semana</span>
                   </div>
                 )}
-                
                 {funcionaria.salario_base && (
                   <div className="flex items-center gap-2 text-sm">
                     <DollarSign className="w-4 h-4 text-muted-foreground" />
@@ -246,7 +316,6 @@ export function Funcionarias() {
                   </div>
                 )}
               </div>
-
               <div className="flex gap-2 pt-2">
                 <Button 
                   variant="outline" 
@@ -257,7 +326,12 @@ export function Funcionarias() {
                   <Edit className="w-3 h-3 mr-1" />
                   Editar
                 </Button>
-                <Button variant="outline" size="sm" className="flex-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => handleDetails(funcionaria)}
+                >
                   <Eye className="w-3 h-3 mr-1" />
                   Detalhes
                 </Button>
@@ -266,20 +340,6 @@ export function Funcionarias() {
           </Card>
         ))}
       </div>
-
-      {funcionarias.length === 0 && (
-        <Card className="text-center py-12">
-          <CardContent>
-            <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2">Nenhuma funcionária cadastrada</h3>
-            <p className="text-muted-foreground mb-4">Comece adicionando sua primeira funcionária ao sistema</p>
-            <Button onClick={handleAddNew} className="bg-primary hover:bg-primary/90">
-              <Plus className="w-4 h-4 mr-2" />
-              Adicionar Primeira Funcionária
-            </Button>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
