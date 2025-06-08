@@ -5,12 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Users, Plus, Edit, Eye, Phone, MapPin, Loader2, User, BadgeInfo, Wallet, Bus, Ticket, ShieldCheck, ShieldX, Search, FileSignature, Fingerprint, Vote, Baby, Trash2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Users, Plus, Edit, Eye, Phone, MapPin, Loader2, User, BadgeInfo, Wallet, Bus, Ticket, ShieldCheck, ShieldX, Search, Vote, Baby, Trash2, CalendarPlus, CalendarX } from "lucide-react";
 import { useFuncionarias, type Funcionaria } from "@/hooks/useFuncionarias";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 
-// --- FUNÇÕES DE FORMATAÇÃO PARA EXIBIÇÃO ---
+// Funções de formatação para exibição
 const formatCPF = (cpf: string | null) => {
   if (!cpf) return 'Não informado';
   const cleaned = ('' + cpf).replace(/\D/g, '');
@@ -36,6 +37,13 @@ const formatPhoneNumber = (phone: string | null) => {
     return phone;
 };
 
+const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Não informado';
+    const date = new Date(dateString);
+    const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+    return new Date(date.getTime() + userTimezoneOffset).toLocaleDateString('pt-BR');
+}
+
 
 export function Funcionarias() {
   const { toast } = useToast();
@@ -47,17 +55,17 @@ export function Funcionarias() {
 
   const [formData, setFormData] = useState({
     nome: '', cpf: '', telefone: '', endereco: '', horas_semanais: '', salario_base: '', valor_passagem: '', passagens_mensais: '', status: 'Ativa',
-    rg: '', carteira_de_trabalho: '', pis: '', titulo_eleitor: ''
+    rg: '', pis: '', titulo_eleitor: '', data_de_admissao: '', data_de_desligamento: ''
   });
   const [cpfsFilhos, setCpfsFilhos] = useState<string[]>(['']);
 
   useEffect(() => {
-    if (editingFuncionaria) {
+    if (isDialogOpen && editingFuncionaria) {
       setCpfsFilhos(editingFuncionaria.cpfs_filhos || ['']);
-    } else {
+    } else if (isDialogOpen && !editingFuncionaria) {
       setCpfsFilhos(['']);
     }
-  }, [editingFuncionaria]);
+  }, [isDialogOpen, editingFuncionaria]);
   
   const handleCpfsChange = (index: number, value: string) => {
     const newCpfs = [...cpfsFilhos];
@@ -68,8 +76,7 @@ export function Funcionarias() {
   const addCpfField = () => setCpfsFilhos([...cpfsFilhos, '']);
   const removeCpfField = (index: number) => {
     if (cpfsFilhos.length > 1) {
-      const newCpfs = cpfsFilhos.filter((_, i) => i !== index);
-      setCpfsFilhos(newCpfs);
+      setCpfsFilhos(cpfsFilhos.filter((_, i) => i !== index));
     } else {
         setCpfsFilhos(['']);
     }
@@ -90,9 +97,10 @@ export function Funcionarias() {
       passagens_mensais: funcionaria.passagens_mensais?.toString() || '',
       status: funcionaria.status || 'Ativa',
       rg: funcionaria.rg || '',
-      carteira_de_trabalho: funcionaria.carteira_de_trabalho || '',
       pis: funcionaria.pis || '',
       titulo_eleitor: funcionaria.titulo_eleitor || '',
+      data_de_admissao: funcionaria.data_de_admissao || '',
+      data_de_desligamento: funcionaria.data_de_desligamento || '',
     });
     setIsDialogOpen(true);
   };
@@ -108,31 +116,32 @@ export function Funcionarias() {
     setDetalhesFuncionaria(null);
     setFormData({
       nome: '', cpf: '', telefone: '', endereco: '', horas_semanais: '', salario_base: '', valor_passagem: '', passagens_mensais: '', status: 'Ativa',
-      rg: '', carteira_de_trabalho: '', pis: '', titulo_eleitor: ''
+      rg: '', pis: '', titulo_eleitor: '', data_de_admissao: '', data_de_desligamento: ''
     });
-    setCpfsFilhos(['']);
     setIsDialogOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.rg || !formData.carteira_de_trabalho) {
+    if (!formData.rg) {
         toast({
-            title: "Campos Obrigatórios",
-            description: "Por favor, preencha os campos RG e Carteira de Trabalho.",
+            title: "Campo Obrigatório",
+            description: "Por favor, preencha o campo RG.",
             variant: "destructive",
         });
         return;
     }
-
+    
     const funcionariaData = {
       ...formData,
       horas_semanais: formData.horas_semanais ? parseInt(formData.horas_semanais) : null,
       salario_base: formData.salario_base ? parseFloat(formData.salario_base) : null,
       valor_passagem: formData.valor_passagem ? parseFloat(formData.valor_passagem) : null,
       passagens_mensais: formData.passagens_mensais ? parseInt(formData.passagens_mensais) : null,
-      cpfs_filhos: cpfsFilhos.map(cpf => cpf.trim()).filter(cpf => cpf), // Limpa e salva o array
+      cpfs_filhos: cpfsFilhos.map(cpf => cpf.trim()).filter(cpf => cpf),
+      data_de_admissao: formData.data_de_admissao || null,
+      data_de_desligamento: formData.status === 'Ativa' ? null : formData.data_de_desligamento || null
     };
 
     try {
@@ -174,38 +183,36 @@ export function Funcionarias() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-6">
                   <div className="flex items-center gap-3"><User className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Nome Completo</p><p className="font-medium">{detalhesFuncionaria.nome}</p></div></div>
                   <div className="flex items-center gap-3"><BadgeInfo className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">CPF</p><p className="font-medium">{formatCPF(detalhesFuncionaria.cpf)}</p></div></div>
-                  <div className="flex items-center gap-3"><Phone className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Telefone</p><p className="font-medium">{formatPhoneNumber(detalhesFuncionaria.telefone)}</p></div></div>
+                  <div className="flex items-center gap-3"><Fingerprint className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">RG</p><p className="font-medium">{detalhesFuncionaria.rg || 'Não informado'}</p></div></div>
                   <div className="flex items-center gap-3 col-span-full"><MapPin className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Endereço</p><p className="font-medium">{detalhesFuncionaria.endereco || 'Não informado'}</p></div></div>
                   <Separator className="col-span-full" />
-                  <div className="flex items-center gap-3"><Fingerprint className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">RG</p><p className="font-medium">{detalhesFuncionaria.rg || 'Não informado'}</p></div></div>
-                  <div className="flex items-center gap-3"><FileSignature className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Carteira de Trabalho</p><p className="font-medium">{detalhesFuncionaria.carteira_de_trabalho || 'Não informado'}</p></div></div>
+                  <div className="flex items-center gap-3"><Phone className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Telefone</p><p className="font-medium">{formatPhoneNumber(detalhesFuncionaria.telefone)}</p></div></div>
                   <div className="flex items-center gap-3"><Ticket className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">PIS</p><p className="font-medium">{detalhesFuncionaria.pis || 'Não informado'}</p></div></div>
                   <div className="flex items-center gap-3"><Vote className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Título de Eleitor</p><p className="font-medium">{detalhesFuncionaria.titulo_eleitor || 'Não informado'}</p></div></div>
+                  <div className="flex items-center gap-3"><CalendarPlus className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Data de Admissão</p><p className="font-medium">{formatDate(detalhesFuncionaria.data_de_admissao)}</p></div></div>
+                  {detalhesFuncionaria.status === 'Inativa' && detalhesFuncionaria.data_de_desligamento && <div className="flex items-center gap-3"><CalendarX className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Data de Desligamento</p><p className="font-medium">{formatDate(detalhesFuncionaria.data_de_desligamento)}</p></div></div>}
                   <div className="flex items-center gap-3"><Wallet className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Salário Base</p><p className="font-medium">R$ {detalhesFuncionaria.salario_base?.toFixed(2) || '0.00'}</p></div></div>
-                  <div className="flex items-center gap-3"><Bus className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Custo Mensal Passagem</p><p className="font-medium">R$ {((detalhesFuncionaria.passagens_mensais || 0) * (detalhesFuncionaria.valor_passagem || 0)).toFixed(2)}</p></div></div>
                   <Separator className="col-span-full" />
-                  <div className="flex items-start gap-3 col-span-full"><Baby className="h-5 w-5 text-muted-foreground mt-1" /><div><p className="text-xs text-muted-foreground">CPFs dos Filhos</p>{detalhesFuncionaria.cpfs_filhos && detalhesFuncionaria.cpfs_filhos.length > 0 ? (<ul className="list-disc pl-5 font-medium">{detalhesFuncionaria.cpfs_filhos.map((cpf, i) => <li key={i}>{formatCPF(cpf)}</li>)}</ul>) : (<p className="font-medium">Nenhum CPF informado</p>)}</div></div>
+                  <div className="flex items-start gap-3 col-span-full"><Baby className="h-5 w-5 text-muted-foreground mt-1" /><div><p className="text-xs text-muted-foreground">Filhos (menores de 14 anos)</p>{(detalhesFuncionaria.cpfs_filhos && detalhesFuncionaria.cpfs_filhos.length > 0 && detalhesFuncionaria.cpfs_filhos[0] !== '') ? (<ul className="list-disc pl-5 font-medium">{detalhesFuncionaria.cpfs_filhos.map((cpf, i) => <li key={i}>{formatCPF(cpf)}</li>)}</ul>) : (<p className="font-medium">Nenhum filho informado</p>)}</div></div>
                 </div>
                 <DialogFooter><Button variant="outline" onClick={closeDialog}>Fechar</Button></DialogFooter>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="space-y-2 lg:col-span-2"><Label htmlFor="nome">Nome Completo</Label><Input id="nome" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} required /></div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2 col-span-2"><Label htmlFor="nome">Nome Completo</Label><Input id="nome" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} required /></div>
                   <div className="space-y-2"><Label htmlFor="cpf">CPF</Label><Input id="cpf" value={formData.cpf} onChange={(e) => setFormData({ ...formData, cpf: e.target.value })} required /></div>
                   <div className="space-y-2 col-span-full"><Label htmlFor="endereco">Endereço</Label><Input id="endereco" value={formData.endereco} onChange={(e) => setFormData({ ...formData, endereco: e.target.value })} /></div>
                   <div className="space-y-2"><Label htmlFor="telefone">Telefone</Label><Input id="telefone" value={formData.telefone} onChange={(e) => setFormData({ ...formData, telefone: e.target.value })} /></div>
                   <div className="space-y-2"><Label htmlFor="rg">RG <span className="text-red-500">*</span></Label><Input id="rg" value={formData.rg} onChange={(e) => setFormData({ ...formData, rg: e.target.value })} /></div>
-                  <div className="space-y-2"><Label htmlFor="carteira_de_trabalho">Carteira de Trabalho <span className="text-red-500">*</span></Label><Input id="carteira_de_trabalho" value={formData.carteira_de_trabalho} onChange={(e) => setFormData({ ...formData, carteira_de_trabalho: e.target.value })} /></div>
+                  <div className="space-y-2"><Label htmlFor="data_de_admissao">Data de Admissão</Label><Input id="data_de_admissao" type="date" value={formData.data_de_admissao} onChange={(e) => setFormData({ ...formData, data_de_admissao: e.target.value })} /></div>
                   <div className="space-y-2"><Label htmlFor="pis">PIS</Label><Input id="pis" value={formData.pis} onChange={(e) => setFormData({ ...formData, pis: e.target.value })} /></div>
                   <div className="space-y-2"><Label htmlFor="titulo_eleitor">Título de Eleitor</Label><Input id="titulo_eleitor" value={formData.titulo_eleitor} onChange={(e) => setFormData({ ...formData, titulo_eleitor: e.target.value })} /></div>
                   <div className="space-y-2"><Label htmlFor="salario">Salário Base</Label><Input id="salario" type="number" step="0.01" value={formData.salario_base} onChange={(e) => setFormData({ ...formData, salario_base: e.target.value })} /></div>
-                  <div className="space-y-2"><Label htmlFor="passagem">Valor da Passagem (Diário)</Label><Input id="passagem" type="number" step="0.01" value={formData.valor_passagem} onChange={(e) => setFormData({ ...formData, valor_passagem: e.target.value })} /></div>
-                  <div className="space-y-2"><Label htmlFor="passagens_mensais">Nº de Passagens por Mês</Label><Input id="passagens_mensais" type="number" value={formData.passagens_mensais} onChange={(e) => setFormData({ ...formData, passagens_mensais: e.target.value })} /></div>
                 </div>
                 <Separator className="my-6"/>
                 <div className="space-y-4">
-                    <Label className="text-base font-medium">Filhos (Menores de 18 anos)</Label>
+                    <Label className="text-base font-medium">Filhos (menores de 14 anos)</Label>
                     {cpfsFilhos.map((cpf, index) => (
                         <div key={index} className="flex items-center gap-2">
                             <Input placeholder={`CPF do ${index + 1}º filho(a)`} value={cpf} onChange={(e) => handleCpfsChange(index, e.target.value)} />
@@ -214,6 +221,28 @@ export function Funcionarias() {
                     ))}
                     <Button type="button" variant="outline" size="sm" onClick={addCpfField}><Plus className="h-4 w-4 mr-2"/>Adicionar Filho</Button>
                 </div>
+                {editingFuncionaria && (
+                    <>
+                    <Separator className="my-6"/>
+                    <div className="space-y-4">
+                        <Label className="text-base font-medium">Controle Administrativo</Label>
+                        <div className="flex items-center space-x-2">
+                            <Switch
+                                id="status"
+                                checked={formData.status === 'Ativa'}
+                                onCheckedChange={(checked) => {
+                                    const newStatus = checked ? 'Ativa' : 'Inativa';
+                                    setFormData({ ...formData, status: newStatus });
+                                }}
+                            />
+                             <Label htmlFor="status">Funcionária {formData.status}</Label>
+                        </div>
+                        {formData.status === 'Inativa' && (
+                            <div className="space-y-2 mt-4"><Label htmlFor="data_de_desligamento">Data de Desligamento</Label><Input id="data_de_desligamento" type="date" value={formData.data_de_desligamento} readOnly className="bg-muted" /></div>
+                        )}
+                    </div>
+                    </>
+                )}
                 <DialogFooter><div className="flex-1" /><Button type="button" variant="outline" onClick={closeDialog}>Cancelar</Button><Button type="submit">{editingFuncionaria ? 'Salvar Alterações' : 'Cadastrar Funcionária'}</Button></DialogFooter>
               </form>
             )}
@@ -221,6 +250,7 @@ export function Funcionarias() {
         </Dialog>
       </div>
       <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" /><Input type="text" placeholder="Pesquisar por nome ou CPF..." className="w-full pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
+      {loading ? ( <div className="flex justify-center items-center py-10"><Loader2 className="h-8 w-8 animate-spin" /></div> ) : (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {filteredFuncionarias.length > 0 ? (
           filteredFuncionarias.map(funcionaria => (
@@ -253,6 +283,7 @@ export function Funcionarias() {
             <p className="text-muted-foreground col-span-full text-center py-10">Nenhuma funcionária encontrada.</p>
         )}
       </div>
+      )}
     </div>
   );
 }

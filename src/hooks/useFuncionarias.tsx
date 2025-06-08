@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -16,12 +16,12 @@ export interface Funcionaria {
   passagens_mensais: number | null;
   documentos: any;
   status: string;
-  // --- NOVOS CAMPOS ---
   rg: string | null;
-  carteira_de_trabalho: string | null;
   pis: string | null;
   titulo_eleitor: string | null;
-  cpfs_filhos: string[] | null; // Usando a sua coluna de array de texto
+  cpfs_filhos: string[] | null;
+  data_de_admissao: string | null;
+  data_de_desligamento: string | null;
 }
 
 export function useFuncionarias() {
@@ -29,7 +29,7 @@ export function useFuncionarias() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchFuncionarias = async () => {
+  const fetchFuncionarias = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -48,7 +48,11 @@ export function useFuncionarias() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchFuncionarias();
+  }, [fetchFuncionarias]);
 
   const createFuncionaria = async (funcionaria: Omit<Funcionaria, 'id'>) => {
     try {
@@ -60,7 +64,7 @@ export function useFuncionarias() {
 
       if (error) throw error;
 
-      setFuncionarias(prev => [...prev, data].sort((a,b) => a.nome.localeCompare(b.nome)));
+      await fetchFuncionarias(); // Força a atualização da lista inteira
       toast({
         title: 'Funcionária cadastrada',
         description: 'Funcionária adicionada com sucesso!',
@@ -102,10 +106,6 @@ export function useFuncionarias() {
       throw error;
     }
   };
-
-  useEffect(() => {
-    fetchFuncionarias();
-  }, []);
 
   return {
     funcionarias,
