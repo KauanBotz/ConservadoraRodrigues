@@ -10,6 +10,10 @@ export interface Condominio {
   recebe_nota_fiscal: boolean;
   contrato_digital: string | null;
   status: 'Ativo' | 'Inativo';
+  sindico: string | null;
+  email_sindico: string | null;
+  telefone_sindico: string | null;
+  vencimento_boleto: number | null;
 }
 
 export function useCondominios() {
@@ -21,7 +25,7 @@ export function useCondominios() {
     try {
       const { data, error } = await supabase
         .from('condominios')
-        .select('*') // sem filtro de status
+        .select('*')
         .order('nome');
 
       if (error) throw error;

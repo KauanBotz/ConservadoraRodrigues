@@ -6,22 +6,48 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Building2, Plus, Edit, Eye, MapPin, DollarSign, FileText, FileCheck, Loader2, Search } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Building2, Plus, Edit, Eye, MapPin, DollarSign, FileText, Loader2, Search, UserCircle, Mail, Phone, CalendarDays, ShieldCheck, ShieldX } from "lucide-react";
 import { useCondominios, type Condominio } from "@/hooks/useCondominios";
+import { useToast } from "@/hooks/use-toast";
+
+// Função para formatar o número de telefone para exibição
+const formatPhoneNumber = (phone: string | null) => {
+    if (!phone) return 'Telefone não informado';
+    const cleaned = ('' + phone).replace(/\D/g, '');
+    if (cleaned.length === 11) {
+        const match = cleaned.match(/^(\d{2})(\d{5})(\d{4})$/);
+        if (match) {
+            return `(${match[1]}) ${match[2]}-${match[3]}`;
+        }
+    }
+    if (cleaned.length === 10) {
+        const match = cleaned.match(/^(\d{2})(\d{4})(\d{4})$/);
+        if (match) {
+            return `(${match[1]}) ${match[2]}-${match[3]}`;
+        }
+    }
+    return phone;
+};
 
 export function Condominios() {
   const { condominios, loading, createCondominio, updateCondominio } = useCondominios();
+  const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCondominio, setEditingCondominio] = useState<Condominio | null>(null);
   const [detalhesCondominio, setDetalhesCondominio] = useState<Condominio | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     nome: '',
     endereco: '',
     valor_servico: '',
     recebe_nota_fiscal: false,
     status: 'Ativo' as 'Ativo' | 'Inativo',
+    sindico: '',
+    email_sindico: '',
+    telefone_sindico: '',
+    vencimento_boleto: '',
   });
-  const [searchTerm, setSearchTerm] = useState(''); // Estado para o termo de pesquisa
 
   const handleEdit = (condominio: Condominio) => {
     setDetalhesCondominio(null);
@@ -32,6 +58,10 @@ export function Condominios() {
       valor_servico: condominio.valor_servico?.toString() || '',
       recebe_nota_fiscal: condominio.recebe_nota_fiscal || false,
       status: condominio.status,
+      sindico: condominio.sindico || '',
+      email_sindico: condominio.email_sindico || '',
+      telefone_sindico: condominio.telefone_sindico || '',
+      vencimento_boleto: condominio.vencimento_boleto?.toString() || '',
     });
     setIsDialogOpen(true);
   };
@@ -51,6 +81,10 @@ export function Condominios() {
       valor_servico: '',
       recebe_nota_fiscal: false,
       status: 'Ativo',
+      sindico: '',
+      email_sindico: '',
+      telefone_sindico: '',
+      vencimento_boleto: '',
     });
     setIsDialogOpen(true);
   };
@@ -58,13 +92,25 @@ export function Condominios() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!formData.vencimento_boleto) {
+        toast({
+            title: "Campo Obrigatório",
+            description: "Por favor, selecione o dia do vencimento do boleto.",
+            variant: "destructive",
+        });
+        return;
+    }
+
     const condominioData = {
       nome: formData.nome,
       endereco: formData.endereco,
       valor_servico: formData.valor_servico ? parseFloat(formData.valor_servico) : null,
       recebe_nota_fiscal: formData.recebe_nota_fiscal,
-      contrato_digital: editingCondominio?.contrato_digital || null,
       status: formData.status,
+      sindico: formData.sindico || null,
+      email_sindico: formData.email_sindico || null,
+      telefone_sindico: formData.telefone_sindico || null,
+      vencimento_boleto: formData.vencimento_boleto ? parseInt(formData.vencimento_boleto) : null,
     };
 
     try {
@@ -99,7 +145,6 @@ export function Condominios() {
     );
   }
   
-  // Filtra os condomínios com base no termo de pesquisa
   const filteredCondominios = condominios.filter(c =>
     c.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.endereco.toLowerCase().includes(searchTerm.toLowerCase())
@@ -131,77 +176,34 @@ export function Condominios() {
             </DialogHeader>
             {detalhesCondominio ? (
                  <div className="space-y-6 pt-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                        <div className="flex items-center gap-3"><Building2 className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Nome</p><p className="font-medium">{detalhesCondominio.nome}</p></div></div>
+                        <div className="flex items-center gap-3"><UserCircle className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Síndico(a)</p><p className="font-medium">{detalhesCondominio.sindico || 'Não informado'}</p></div></div>
+                        <div className="flex items-center gap-3"><Mail className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Email Síndico(a)</p><p className="font-medium">{detalhesCondominio.email_sindico || 'Não informado'}</p></div></div>
+                        <div className="flex items-center gap-3"><Phone className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Telefone Síndico(a)</p><p className="font-medium">{formatPhoneNumber(detalhesCondominio.telefone_sindico)}</p></div></div>
+                        <div className="flex items-center gap-3"><MapPin className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Endereço</p><p className="font-medium">{detalhesCondominio.endereco}</p></div></div>
+                        <div className="flex items-center gap-3"><DollarSign className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Valor do Serviço</p><p className="font-medium">R$ {detalhesCondominio.valor_servico?.toFixed(2) || '0.00'}</p></div></div>
+                        <div className="flex items-center gap-3"><CalendarDays className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Vencimento do Boleto</p><p className="font-medium">Todo dia {detalhesCondominio.vencimento_boleto || 'N/A'}</p></div></div>
                         <div className="flex items-center gap-3">
-                            <Building2 className="h-5 w-5 text-muted-foreground" />
-                            <div>
-                                <p className="text-xs text-muted-foreground">Nome do Condomínio</p>
-                                <p className="font-medium">{detalhesCondominio.nome}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <MapPin className="h-5 w-5 text-muted-foreground" />
-                            <div>
-                                <p className="text-xs text-muted-foreground">Endereço</p>
-                                <p className="font-medium">{detalhesCondominio.endereco}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <DollarSign className="h-5 w-5 text-muted-foreground" />
-                            <div>
-                                <p className="text-xs text-muted-foreground">Valor do Serviço</p>
-                                <p className="font-medium">R$ {detalhesCondominio.valor_servico?.toFixed(2) || '0.00'}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                           <FileCheck className="h-5 w-5 text-muted-foreground" />
-                           <div>
-                             <p className="text-xs text-muted-foreground">Emite Nota Fiscal?</p>
-                             <p className="font-medium">{detalhesCondominio.recebe_nota_fiscal ? 'Sim' : 'Não'}</p>
-                           </div>
-                        </div>
-                        {detalhesCondominio.contrato_digital && (
-                             <div className="flex items-center gap-3">
-                                <FileText className="h-5 w-5 text-muted-foreground" />
-                                <div>
-                                    <p className="text-xs text-muted-foreground">Contrato Digital</p>
-                                    <a href={detalhesCondominio.contrato_digital} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">
-                                        Visualizar Contrato
-                                    </a>
-                                </div>
-                            </div>
-                        )}
-                        <div className="flex items-center gap-3">
-                            <Badge className={detalhesCondominio.status === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                                {detalhesCondominio.status}
-                            </Badge>
+                            {detalhesCondominio.status === 'Ativo' ? <ShieldCheck className="h-5 w-5 text-green-600"/> : <ShieldX className="h-5 w-5 text-red-600" />}
+                            <div><p className="text-xs text-muted-foreground">Situação</p><Badge variant="outline" className={detalhesCondominio.status === 'Ativo' ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}>{detalhesCondominio.status}</Badge></div>
                         </div>
                     </div>
                      <div className="pt-4 flex justify-end">
-                        <Button variant="outline" onClick={closeDialog}>
-                            Fechar
-                        </Button>
+                        <Button variant="outline" onClick={closeDialog}>Fechar</Button>
                     </div>
                 </div>
             ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="nome">Nome do Condomínio</Label>
-                    <Input id="nome" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} placeholder="Digite o nome do condomínio" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="endereco">Endereço Completo</Label>
-                    <Input id="endereco" value={formData.endereco} onChange={(e) => setFormData({ ...formData, endereco: e.target.value })} placeholder="Rua, número - Bairro - CEP" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="valor">Valor Mensal (R$)</Label>
-                    <Input id="valor" type="number" step="0.01" value={formData.valor_servico} onChange={(e) => setFormData({ ...formData, valor_servico: e.target.value })} placeholder="2500.00" />
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch id="status" checked={formData.status === 'Ativo'} onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? 'Ativo' : 'Inativo' })} />
-                    <Label htmlFor="status">{formData.status === 'Ativo' ? 'Ativo' : 'Inativo'}</Label>
-                  </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2 col-span-2"><Label htmlFor="nome">Nome do Condomínio</Label><Input id="nome" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} required /></div>
+                  <div className="space-y-2 col-span-2"><Label htmlFor="endereco">Endereço Completo</Label><Input id="endereco" value={formData.endereco} onChange={(e) => setFormData({ ...formData, endereco: e.target.value })} required /></div>
+                  <div className="space-y-2"><Label htmlFor="sindico">Nome do Síndico(a)</Label><Input id="sindico" value={formData.sindico} onChange={(e) => setFormData({ ...formData, sindico: e.target.value })} /></div>
+                  <div className="space-y-2"><Label htmlFor="telefone_sindico">Telefone do Síndico(a)</Label><Input id="telefone_sindico" value={formData.telefone_sindico} onChange={(e) => setFormData({ ...formData, telefone_sindico: e.target.value })} /></div>
+                  <div className="space-y-2 col-span-2"><Label htmlFor="email_sindico">Email do Síndico(a)</Label><Input id="email_sindico" type="email" value={formData.email_sindico} onChange={(e) => setFormData({ ...formData, email_sindico: e.target.value })} /></div>
+                  <div className="space-y-2"><Label htmlFor="valor">Valor Mensal (R$)</Label><Input id="valor" type="number" step="0.01" value={formData.valor_servico} onChange={(e) => setFormData({ ...formData, valor_servico: e.target.value })} /></div>
+                  <div className="space-y-2"><Label htmlFor="vencimento_boleto">Dia do Vencimento</Label><Select required value={formData.vencimento_boleto} onValueChange={(value) => setFormData({ ...formData, vencimento_boleto: value })}><SelectTrigger><SelectValue placeholder="Selecione o dia" /></SelectTrigger><SelectContent>{Array.from({ length: 31 }, (_, i) => i + 1).map(day => (<SelectItem key={day} value={day.toString()}>{day}</SelectItem>))}</SelectContent></Select></div>
+                  <div className="flex items-center space-x-2 pt-6"><Switch id="status" checked={formData.status === 'Ativo'} onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? 'Ativo' : 'Inativo' })} /><Label htmlFor="status">{formData.status}</Label></div>
                 </div>
                 <div className="flex justify-end gap-2 pt-4">
                   <Button type="button" variant="outline" onClick={closeDialog}>Cancelar</Button>
@@ -213,33 +215,16 @@ export function Condominios() {
         </Dialog>
       </div>
       
-      {/* --- CAMPO DE PESQUISA ADICIONADO --- */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-        <Input
-          type="text"
-          placeholder="Pesquisar por nome ou endereço..."
-          className="w-full pl-10"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+        <Input type="text" placeholder="Pesquisar por nome ou endereço..." className="w-full pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
       </div>
 
       <Card className="border-l-4 border-l-secondary">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Receita Mensal Total (Ativos)</p>
-              <p className="text-3xl font-bold text-secondary">
-                R$ {totalValorMensal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-muted-foreground">Condomínios Ativos</p>
-              <p className="text-2xl font-bold text-primary">
-                {totalCondominiosAtivos}
-              </p>
-            </div>
+            <div><p className="text-sm text-muted-foreground">Receita Mensal Total (Ativos)</p><p className="text-3xl font-bold text-secondary">R$ {totalValorMensal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p></div>
+            <div className="text-right"><p className="text-sm text-muted-foreground">Condomínios Ativos</p><p className="text-2xl font-bold text-primary">{totalCondominiosAtivos}</p></div>
           </div>
         </CardContent>
       </Card>
@@ -252,65 +237,28 @@ export function Condominios() {
                     <div className="flex items-start justify-between">
                     <div>
                         <CardTitle className="text-lg text-foreground">{condominio.nome}</CardTitle>
-                        <div className="flex items-center gap-2 mt-1">
-                        <Badge className={`text-xs px-2 py-1 rounded ${condominio.status === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>
-                            {condominio.status}
-                        </Badge>
-                        {condominio.recebe_nota_fiscal && (
-                            <Badge variant="outline" className="text-xs">Nota Fiscal</Badge>
-                        )}
-                        </div>
+                        <p className="text-sm text-muted-foreground">{condominio.sindico || 'Síndico não informado'}</p>
                     </div>
+                    <Badge className={`text-xs px-2 py-1 rounded ${condominio.status === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>{condominio.status}</Badge>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-3">
-                    <div className="flex items-start gap-2 text-sm">
-                        <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
-                        <div>
-                        <span className="text-muted-foreground block">Endereço:</span>
-                        <span className="font-medium text-xs leading-relaxed">{condominio.endereco}</span>
-                        </div>
-                    </div>
-                    {condominio.valor_servico && (
-                        <div className="flex items-center gap-2 text-sm">
-                        <DollarSign className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">Valor Mensal:</span>
-                        <span className="font-bold text-secondary">R$ {condominio.valor_servico.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                        </div>
-                    )}
-                    {condominio.contrato_digital && (
-                        <div className="flex items-center gap-2 text-sm">
-                        <FileText className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">Contrato:</span>
-                        <Button asChild variant="link" className="h-auto p-0 text-xs text-primary"><a href={condominio.contrato_digital} target="_blank" rel="noopener noreferrer">Ver documento</a></Button>
-                        </div>
-                    )}
+                        <div className="flex items-center gap-2 text-sm"><Mail className="w-4 h-4 text-muted-foreground" /><span>{condominio.email_sindico || 'Email não informado'}</span></div>
+                        <div className="flex items-center gap-2 text-sm"><Phone className="w-4 h-4 text-muted-foreground" /><span>{formatPhoneNumber(condominio.telefone_sindico)}</span></div>
+                        <div className="flex items-center gap-2 text-sm"><CalendarDays className="w-4 h-4 text-muted-foreground" /><span>Vencimento todo dia {condominio.vencimento_boleto}</span></div>
                     </div>
                     <div className="flex gap-2 pt-2">
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(condominio)} className="flex-1"><Edit className="w-3 h-3 mr-1" />Editar</Button>
-                    <Button variant="outline" size="sm" className="flex-1" onClick={() => handleDetails(condominio)}><Eye className="w-3 h-3 mr-1" />Detalhes</Button>
+                        <Button variant="outline" size="sm" onClick={() => handleEdit(condominio)} className="flex-1"><Edit className="w-3 h-3 mr-1" />Editar</Button>
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => handleDetails(condominio)}><Eye className="w-3 h-3 mr-1" />Detalhes</Button>
                     </div>
                 </CardContent>
             </Card>
         ))
         ) : (
-            <div className="col-span-full text-center py-10">
-                <p className="text-muted-foreground">Nenhum condomínio encontrado com o termo pesquisado.</p>
-            </div>
+            <div className="col-span-full text-center py-10"><p className="text-muted-foreground">Nenhum condomínio encontrado.</p></div>
         )}
       </div>
-
-    {condominios.length === 0 && !loading && (
-        <Card className="text-center py-12">
-            <CardContent>
-            <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2">Nenhum condomínio cadastrado</h3>
-            <p className="text-muted-foreground mb-4">Comece adicionando o primeiro condomínio ao sistema</p>
-            <Button onClick={handleAddNew} className="bg-primary hover:bg-primary/90"><Plus className="w-4 h-4 mr-2" />Adicionar Primeiro Condomínio</Button>
-            </CardContent>
-        </Card>
-    )}
     </div>
   );
 }
