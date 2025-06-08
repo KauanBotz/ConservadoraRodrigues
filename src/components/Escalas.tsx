@@ -32,10 +32,16 @@ import { Plus, Edit, Trash2, Calendar, Loader2 } from 'lucide-react';
 
 export function Escalas() {
   const { escalas, loading, createEscala, updateEscala, deleteEscala } = useEscalas();
-  const { funcionarias } = useFuncionarias();
-  const { condominios } = useCondominios();
+  const { funcionarias, loading: loadingFuncionarias } = useFuncionarias();
+  const { condominios, loading: loadingCondominios } = useCondominios();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEscala, setEditingEscala] = useState<any>(null);
+  
+  // Estados para os filtros
+  const [filtroDia, setFiltroDia] = useState('todos');
+  const [filtroFuncionario, setFiltroFuncionario] = useState('todos');
+  const [filtroCondominio, setFiltroCondominio] = useState('todos');
+
   const [formData, setFormData] = useState({
     dia_semana: '',
     horas_trabalho: '',
@@ -62,7 +68,7 @@ export function Escalas() {
       if (editingEscala) {
         await updateEscala(editingEscala.id, escalaData);
       } else {
-        await createEscala(escalaData);
+        await createEscala(escalaData as any);
       }
   
       setIsDialogOpen(false);
@@ -96,7 +102,9 @@ export function Escalas() {
     setEditingEscala(null);
   };
 
-  if (loading) {
+  const anyLoading = loading || loadingFuncionarias || loadingCondominios;
+
+  if (anyLoading) {
     return (
       <div className="flex items-center justify-center h-48">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -104,19 +112,21 @@ export function Escalas() {
     );
   }
 
+  // Lógica para filtrar as escalas
+  const escalasFiltradas = escalas.filter(escala => {
+    const matchDia = filtroDia === 'todos' || escala.dia_semana === filtroDia;
+    const matchFuncionario = filtroFuncionario === 'todos' || escala.id_funcionaria === filtroFuncionario;
+    const matchCondominio = filtroCondominio === 'todos' || escala.id_condominio === filtroCondominio;
+    return matchDia && matchFuncionario && matchCondominio;
+  });
+
   return (
     <div className="space-y-8 animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Escalas de Trabalho</h1>
-        <p className="text-muted-foreground">Gerencie as escalas das funcionárias</p>
-      </div>
-
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <Calendar className="h-6 w-6 text-primary" />
-          <span className="text-lg font-medium">Total de escalas: {escalas.length}</span>
+      <div className="flex items-center justify-between">
+        <div>
+            <h1 className="text-3xl font-bold text-foreground">Escalas de Trabalho</h1>
+            <p className="text-muted-foreground">Gerencie as escalas das funcionárias</p>
         </div>
-
         <Dialog open={isDialogOpen} onOpenChange={(open) => {
           setIsDialogOpen(open);
           if (!open) resetForm();
@@ -225,10 +235,56 @@ export function Escalas() {
           </DialogContent>
         </Dialog>
       </div>
+      
+      {/* --- SEÇÃO DE FILTROS ADICIONADA --- */}
+      <Card>
+        <CardHeader>
+            <CardTitle>Filtros de Pesquisa</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 space-y-2">
+                <Label>Dia da Semana</Label>
+                <Select value={filtroDia} onValueChange={setFiltroDia}>
+                    <SelectTrigger><SelectValue/></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="todos">Todos os dias</SelectItem>
+                        {["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"].map(dia => (
+                            <SelectItem key={dia} value={dia}>{dia}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+            <div className="flex-1 space-y-2">
+                <Label>Funcionária</Label>
+                <Select value={filtroFuncionario} onValueChange={setFiltroFuncionario}>
+                    <SelectTrigger><SelectValue/></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="todos">Todas as funcionárias</SelectItem>
+                        {funcionarias.map(f => (
+                            <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+            <div className="flex-1 space-y-2">
+                <Label>Condomínio</Label>
+                <Select value={filtroCondominio} onValueChange={setFiltroCondominio}>
+                    <SelectTrigger><SelectValue/></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="todos">Todos os condomínios</SelectItem>
+                         {condominios.map(c => (
+                            <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+        </CardContent>
+      </Card>
+
 
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Escalas</CardTitle>
+          <CardTitle>Lista de Escalas ({escalasFiltradas.length})</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -242,32 +298,40 @@ export function Escalas() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {escalas.map((escala) => (
-                <TableRow key={escala.id}>
-                  <TableCell>{escala.dia_semana}</TableCell>
-                  <TableCell>{escala.funcionaria?.nome || 'N/A'}</TableCell>
-                  <TableCell>{escala.condominio?.nome || 'N/A'}</TableCell>
-                  <TableCell>{escala.horas_trabalho}h</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(escala)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(escala.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+              {escalasFiltradas.length > 0 ? (
+                escalasFiltradas.map((escala) => (
+                    <TableRow key={escala.id}>
+                    <TableCell>{escala.dia_semana}</TableCell>
+                    <TableCell>{escala.funcionaria?.nome || 'N/A'}</TableCell>
+                    <TableCell>{escala.condominio?.nome || 'N/A'}</TableCell>
+                    <TableCell>{escala.horas_trabalho}h</TableCell>
+                    <TableCell>
+                        <div className="flex space-x-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(escala)}
+                        >
+                            <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDelete(escala.id)}
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                        </div>
+                    </TableCell>
+                    </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                    <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                        Nenhuma escala encontrada com os filtros selecionados.
+                    </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>

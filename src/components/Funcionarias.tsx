@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Users, Plus, Edit, Eye, Phone, MapPin, Clock, DollarSign, Loader2, User, BadgeInfo, Wallet, Bus, Ticket } from "lucide-react";
+import { Users, Plus, Edit, Eye, Phone, MapPin, Clock, DollarSign, Loader2, User, BadgeInfo, Wallet, Bus, Ticket, ShieldCheck, ShieldX, Search } from "lucide-react";
 import { useFuncionarias, type Funcionaria } from "@/hooks/useFuncionarias";
 
 export function Funcionarias() {
@@ -21,9 +21,10 @@ export function Funcionarias() {
     horas_semanais: '',
     salario_base: '',
     valor_passagem: '',
-    passagens_mensais: '', // <-- NOVO CAMPO
+    passagens_mensais: '',
     status: 'Ativa',
   });
+  const [searchTerm, setSearchTerm] = useState(''); // Estado para o termo de pesquisa
 
   const handleEdit = (funcionaria: Funcionaria) => {
     setDetalhesFuncionaria(null);
@@ -36,7 +37,7 @@ export function Funcionarias() {
       horas_semanais: funcionaria.horas_semanais?.toString() || '',
       salario_base: funcionaria.salario_base?.toString() || '',
       valor_passagem: funcionaria.valor_passagem?.toString() || '',
-      passagens_mensais: funcionaria.passagens_mensais?.toString() || '', // <-- NOVO CAMPO
+      passagens_mensais: funcionaria.passagens_mensais?.toString() || '',
       status: funcionaria.status || 'Ativa',
     });
     setIsDialogOpen(true);
@@ -59,7 +60,7 @@ export function Funcionarias() {
       horas_semanais: '',
       salario_base: '',
       valor_passagem: '',
-      passagens_mensais: '', // <-- NOVO CAMPO
+      passagens_mensais: '',
       status: 'Ativa',
     });
     setIsDialogOpen(true);
@@ -73,25 +74,41 @@ export function Funcionarias() {
       cpf: formData.cpf,
       telefone: formData.telefone || null,
       endereco: formData.endereco || null,
-      jornada_dias: null,
       horas_semanais: formData.horas_semanais ? parseInt(formData.horas_semanais) : null,
-      dias_da_semana: null,
       salario_base: formData.salario_base ? parseFloat(formData.salario_base) : null,
       valor_passagem: formData.valor_passagem ? parseFloat(formData.valor_passagem) : null,
-      passagens_mensais: formData.passagens_mensais ? parseInt(formData.passagens_mensais) : null, // <-- NOVO CAMPO
-      documentos: [],
+      passagens_mensais: formData.passagens_mensais ? parseInt(formData.passagens_mensais) : null,
       status: formData.status,
+      ...(editingFuncionaria ? {
+        documentos: editingFuncionaria.documentos,
+        dias_da_semana: editingFuncionaria.dias_da_semana,
+        jornada_dias: editingFuncionaria.jornada_dias
+      } : {
+        documentos: null,
+        dias_da_semana: null,
+        jornada_dias: null
+      })
     };
 
     try {
       if (editingFuncionaria) {
-        await updateFuncionaria(editingFuncionaria.id, funcionariaData);
+        await updateFuncionaria(editingFuncionaria.id, {
+            nome: funcionariaData.nome,
+            cpf: funcionariaData.cpf,
+            telefone: funcionariaData.telefone,
+            endereco: funcionariaData.endereco,
+            horas_semanais: funcionariaData.horas_semanais,
+            salario_base: funcionariaData.salario_base,
+            valor_passagem: funcionariaData.valor_passagem,
+            passagens_mensais: funcionariaData.passagens_mensais,
+            status: funcionariaData.status
+        });
       } else {
         await createFuncionaria(funcionariaData as Omit<Funcionaria, 'id'>);
       }
       setIsDialogOpen(false);
     } catch (error) {
-      // Error is handled in the hook
+      console.error("Erro ao salvar funcionária:", error);
     }
   };
   
@@ -108,6 +125,12 @@ export function Funcionarias() {
       </div>
     );
   }
+  
+  // Filtra as funcionárias com base no termo de pesquisa
+  const filteredFuncionarias = funcionarias.filter(f =>
+    f.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    f.cpf.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -139,7 +162,7 @@ export function Funcionarias() {
 
             {detalhesFuncionaria ? (
               <div className="space-y-6 pt-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                   <div className="flex items-center gap-3">
                     <User className="h-5 w-5 text-muted-foreground" />
                     <div>
@@ -161,14 +184,14 @@ export function Funcionarias() {
                       <p className="font-medium">{detalhesFuncionaria.telefone || 'Não informado'}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 md:col-span-2">
+                  <div className="flex items-center gap-3">
                     <MapPin className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="text-xs text-muted-foreground">Endereço</p>
                       <p className="font-medium">{detalhesFuncionaria.endereco || 'Não informado'}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                   <div className="flex items-center gap-3">
                     <Wallet className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="text-xs text-muted-foreground">Salário Base</p>
@@ -194,9 +217,17 @@ export function Funcionarias() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                     <Badge className={detalhesFuncionaria.status === 'Ativa' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                    {detalhesFuncionaria.status === 'Ativa' ? (
+                        <ShieldCheck className="h-5 w-5 text-green-600" />
+                    ) : (
+                        <ShieldX className="h-5 w-5 text-red-600" />
+                    )}
+                    <div>
+                      <p className="text-xs text-muted-foreground">Situação</p>
+                      <Badge variant="outline" className={detalhesFuncionaria.status === 'Ativa' ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}>
                         {detalhesFuncionaria.status}
-                     </Badge>
+                      </Badge>
+                    </div>
                   </div>
                 </div>
                  <div className="pt-4 flex justify-end">
@@ -236,12 +267,10 @@ export function Funcionarias() {
                     <Label htmlFor="passagem">Valor da Passagem (Diário)</Label>
                     <Input id="passagem" type="number" step="0.01" value={formData.valor_passagem} onChange={(e) => setFormData({ ...formData, valor_passagem: e.target.value })} />
                   </div>
-                   {/* NOVO CAMPO NO FORMULÁRIO */}
                    <div className="space-y-2">
                     <Label htmlFor="passagens_mensais">Nº de Passagens por Mês</Label>
                     <Input id="passagens_mensais" type="number" value={formData.passagens_mensais} onChange={(e) => setFormData({ ...formData, passagens_mensais: e.target.value })} />
                   </div>
-
                   {editingFuncionaria && (
                     <div className="space-y-2">
                       <Label htmlFor="status">Status</Label>
@@ -265,48 +294,65 @@ export function Funcionarias() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* --- CAMPO DE PESQUISA ADICIONADO --- */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+        <Input
+          type="text"
+          placeholder="Pesquisar por nome ou CPF..."
+          className="w-full pl-10"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {funcionarias.map(funcionaria => (
-        <Card key={funcionaria.id} className={`hover:shadow-lg transition-all duration-300 border-l-4 ${funcionaria.status === 'Ativa' ? 'border-l-yellow-400 bg-white' : 'border-l-red-300 bg-gray-100 text-muted-foreground'}`}>
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-lg text-foreground">{funcionaria.nome}</CardTitle>
-                  <p className="text-sm text-muted-foreground">{funcionaria.cpf}</p>
-                </div>
-                <Badge className={funcionaria.status === 'Ativa' ? 'bg-yellow-400 text-black' : 'bg-red-300 text-black'}>
-                    {funcionaria.status}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 gap-3">
-                {funcionaria.valor_passagem && (
-                    <div className="flex items-center gap-2 text-sm">
-                        <Bus className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">Custo Passagem:</span>
-                        <span className="font-medium">
-                        R$ {(
-                            (funcionaria.passagens_mensais || 0) * (funcionaria.valor_passagem || 0)
-                        ).toFixed(2)} / mês
-                        </span>
+        {filteredFuncionarias.length > 0 ? (
+          filteredFuncionarias.map(funcionaria => (
+            <Card key={funcionaria.id} className={`hover:shadow-lg transition-all duration-300 border-l-4 ${funcionaria.status === 'Ativa' ? 'border-l-yellow-400 bg-white' : 'border-l-red-300 bg-gray-100 text-muted-foreground'}`}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="text-lg text-foreground">{funcionaria.nome}</CardTitle>
+                      <p className="text-sm text-muted-foreground">{funcionaria.cpf}</p>
                     </div>
-                )}
-                {funcionaria.salario_base && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <DollarSign className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Salário:</span>
-                    <span className="font-medium">R$ {funcionaria.salario_base.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    <Badge className={funcionaria.status === 'Ativa' ? 'bg-yellow-400 text-black' : 'bg-red-300 text-black'}>
+                        {funcionaria.status}
+                    </Badge>
                   </div>
-                )}
-              </div>
-              <div className="flex gap-2 pt-2">
-                <Button variant="outline" size="sm" onClick={() => handleEdit(funcionaria)} className="flex-1"><Edit className="w-3 h-3 mr-1" />Editar</Button>
-                <Button variant="outline" size="sm" className="flex-1" onClick={() => handleDetails(funcionaria)}><Eye className="w-3 h-3 mr-1" />Detalhes</Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 gap-3">
+                    {funcionaria.valor_passagem && (
+                        <div className="flex items-center gap-2 text-sm">
+                            <Bus className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-muted-foreground">Custo Passagem:</span>
+                            <span className="font-medium">
+                            R$ {(
+                                (funcionaria.passagens_mensais || 0) * (funcionaria.valor_passagem || 0)
+                            ).toFixed(2)} / mês
+                            </span>
+                        </div>
+                    )}
+                    {funcionaria.salario_base && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <DollarSign className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Salário:</span>
+                        <span className="font-medium">R$ {funcionaria.salario_base.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(funcionaria)} className="flex-1"><Edit className="w-3 h-3 mr-1" />Editar</Button>
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => handleDetails(funcionaria)}><Eye className="w-3 h-3 mr-1" />Detalhes</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+        ) : (
+            <p className="text-muted-foreground col-span-full text-center py-10">Nenhuma funcionária encontrada com o termo pesquisado.</p>
+        )}
       </div>
     </div>
   );

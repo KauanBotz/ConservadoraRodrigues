@@ -39,7 +39,6 @@ const menuItems = [
     url: "#faltas",
     icon: AlertTriangle,
   },
-    /*
   {
     title: "Relatórios",
     url: "#relatorios",
@@ -50,7 +49,7 @@ const menuItems = [
     title: "Documentos",
     url: "#documentos",
     icon: FileText,
-  },*/
+  },
 ];
 
 interface AppSidebarProps {

@@ -53,16 +53,15 @@ export function Dashboard() {
     return total + (salarioBase - desconto);
   }, 0);
 
+  // --- LÓGICA DE CÁLCULO CORRIGIDA ---
   const totalPassagens = funcionarias.reduce((total, funcionaria) => {
-    if (funcionaria.status !== 'Ativa' || !funcionaria.valor_passagem || !funcionaria.horas_semanais) {
+    if (funcionaria.status !== 'Ativa') {
       return total;
     }
-    const diasTrabalhadosPorSemana = funcionaria.horas_semanais / 8;
-    const custoMensalPassagens = funcionaria.valor_passagem * diasTrabalhadosPorSemana * 4.5;
-    return total + custoMensalPassagens;
+    const custoMensal = (funcionaria.passagens_mensais || 0) * (funcionaria.valor_passagem || 0);
+    return total + custoMensal;
   }, 0);
 
-  // Alterado para mostrar as faltas do mês atual inteiro
   const faltasDoMes = faltas.filter(f => {
     const dataFalta = new Date(f.data);
     return dataFalta.getMonth() === mesAtual && dataFalta.getFullYear() === anoAtual;

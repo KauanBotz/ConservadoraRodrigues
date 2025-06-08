@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
   DialogContent,
@@ -37,12 +36,9 @@ export function Faltas() {
   const { funcionarias } = useFuncionarias();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingFalta, setEditingFalta] = useState<any>(null);
-  const [filtroFuncionario, setFiltroFuncionario] = useState('');
-  const [filtroMes, setFiltroMes] = useState('');
-  const [formData, setFormData] = useState< 
-  
-  {
-    
+  const [filtroFuncionario, setFiltroFuncionario] = useState('todos');
+  const [filtroMes, setFiltroMes] = useState('todos');
+  const [formData, setFormData] = useState<{
     data: string;
     motivo: string;
     justificativa: boolean;
@@ -72,22 +68,16 @@ export function Faltas() {
         desconto_aplicado: formData.desconto_aplicado,
         id_funcionaria: formData.id_funcionaria || null
       };
-
-      if (!formData.id_funcionaria) {
-        alert("Selecione uma funcionária antes de salvar.");
-        return;
-      }
       
       if (!formData.justificativa && !formData.desconto_aplicado) {
         alert("Selecione se a falta é justificada ou se terá desconto.");
         return;
       }
       
-
       if (editingFalta) {
         await updateFalta(editingFalta.id, faltaData);
       } else {
-        await createFalta(faltaData);
+        await createFalta(faltaData as any);
       }
 
       setIsDialogOpen(false);
@@ -142,25 +132,18 @@ export function Faltas() {
   }
 
   const faltasFiltradas = faltas.filter(f => {
-    const mesmaFunc = !filtroFuncionario || filtroFuncionario === 'todas' || f.id_funcionaria === filtroFuncionario;
-    const mesmoMes = !filtroMes || filtroMes === 'todos' || new Date(f.data).getMonth() + 1 === parseInt(filtroMes, 10);
+    const mesmaFunc = !filtroFuncionario || filtroFuncionario === 'todos' || f.id_funcionaria === filtroFuncionario;
+    const mesmoMes = !filtroMes || filtroMes === 'todos' || new Date(f.data).getUTCMonth() + 1 === parseInt(filtroMes, 10);
     return mesmaFunc && mesmoMes;
   });
-  
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Registro de Faltas</h1>
-        <p className="text-muted-foreground">Gerencie as faltas das funcionárias</p>
-      </div>
-
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <AlertTriangle className="h-6 w-6 text-primary" />
-          <span className="text-lg font-medium">Total de faltas: {faltas.length}</span>
+      <div className="flex items-center justify-between">
+        <div>
+            <h1 className="text-3xl font-bold text-foreground">Registro de Faltas</h1>
+            <p className="text-muted-foreground">Gerencie as faltas das funcionárias</p>
         </div>
-
         <Dialog open={isDialogOpen} onOpenChange={(open) => {
           setIsDialogOpen(open);
           if (!open) resetForm();
@@ -201,7 +184,7 @@ export function Faltas() {
                   </SelectTrigger>
                   <SelectContent>
                     {funcionarias.map((f) => (
-                      <SelectItem key={f.id} value={f.id}>
+                      <SelectItem key={f.id} value={f.id} disabled={f.status !== 'Ativa'}>
                         {f.nome} {f.status !== 'Ativa' ? '(Inativa)' : ''}
                       </SelectItem>
                     ))}
@@ -225,87 +208,74 @@ export function Faltas() {
                     id="justificativa"
                     checked={formData.justificativa}
                     onCheckedChange={(checked) =>
-                      setFormData({ ...formData, justificativa: !!checked })
+                      setFormData({ ...formData, justificativa: !!checked, desconto_aplicado: !!checked ? false : formData.desconto_aplicado })
                     }
                   />
                   <Label htmlFor="justificativa">Falta justificada</Label>
                 </div>
-
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="desconto_aplicado"
                     checked={formData.desconto_aplicado}
                     onCheckedChange={(checked) =>
-                      setFormData({ ...formData, desconto_aplicado: !!checked })
+                      setFormData({ ...formData, desconto_aplicado: !!checked, justificativa: !!checked ? false : formData.justificativa })
                     }
                   />
-                  <Label htmlFor="desconto_aplicado">Desconto aplicado</Label>
+                  <Label htmlFor="desconto_aplicado">Aplicar desconto</Label>
                 </div>
               </div>
 
               <div className="flex justify-end space-x-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit">
-                  {editingFalta ? 'Atualizar' : 'Registrar'}
-                </Button>
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+                <Button type="submit">{editingFalta ? 'Atualizar' : 'Registrar'}</Button>
               </div>
             </form>
           </DialogContent>
         </Dialog>
       </div>
-
-      <div className="flex flex-col md:flex-row gap-4 mb-4">
-      <div className="flex-1">
-        <Label>Filtrar por Funcionária</Label>
-        <Select
-          value={filtroFuncionario}
-          onValueChange={setFiltroFuncionario}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Todas" />
-          </SelectTrigger>
-          <SelectContent>
-          <SelectItem value="todas">Todas</SelectItem>
-            {funcionarias.map(f => (
-              <SelectItem key={f.id} value={f.id}>
-                {f.nome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="flex-1">
-        <Label>Filtrar por Mês</Label>
-        <Select
-          value={filtroMes}
-          onValueChange={setFiltroMes}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Todos" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos</SelectItem>
-            {[...Array(12)].map((_, i) => (
-              <SelectItem key={i + 1} value={(i + 1).toString()}>
-                {`${i + 1}`.padStart(2, '0')}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
-
+      
+      <Card>
+        <CardHeader>
+            <CardTitle>Filtros de Pesquisa</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 space-y-2">
+                <Label>Funcionária</Label>
+                <Select value={filtroFuncionario} onValueChange={setFiltroFuncionario}>
+                    <SelectTrigger><SelectValue placeholder="Todas as funcionárias" /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="todos">Todas as funcionárias</SelectItem>
+                        {funcionarias.map(f => (
+                            <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+            <div className="flex-1 space-y-2">
+                <Label>Mês</Label>
+                <Select value={filtroMes} onValueChange={setFiltroMes}>
+                    <SelectTrigger><SelectValue placeholder="Todos os meses" /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="todos">Todos os meses</SelectItem>
+                        {/* --- LÓGICA DE CAPITALIZAÇÃO APLICADA AQUI --- */}
+                        {[...Array(12)].map((_, i) => {
+                          const monthName = new Date(0, i).toLocaleString('pt-BR', { month: 'long' });
+                          const capitalizedMonthName = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+                          return (
+                            <SelectItem key={i + 1} value={(i + 1).toString()}>
+                              {capitalizedMonthName}
+                            </SelectItem>
+                          );
+                        })}
+                    </SelectContent>
+                </Select>
+            </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Faltas</CardTitle>
+          <CardTitle>Lista de Faltas ({faltasFiltradas.length})</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -315,14 +285,15 @@ export function Faltas() {
                 <TableHead>Funcionária</TableHead>
                 <TableHead>Motivo</TableHead>
                 <TableHead>Justificada</TableHead>
-                <TableHead>Desconto</TableHead>
+                <TableHead>Desconto Aplicado</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-            {faltasFiltradas.map((falta) => (
+            {faltasFiltradas.length > 0 ? (
+              faltasFiltradas.map((falta) => (
                 <TableRow key={falta.id}>
-                  <TableCell>{new Date(falta.data).toLocaleDateString('pt-BR')}</TableCell>
+                  <TableCell>{new Date(falta.data).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</TableCell>
                   <TableCell>{falta.funcionaria?.nome || 'N/A'}</TableCell>
                   <TableCell>{falta.motivo || 'N/A'}</TableCell>
                   <TableCell>
@@ -335,39 +306,29 @@ export function Faltas() {
                     </span>
                   </TableCell>
                   <TableCell>
-                  {(() => {
-                    const salario = falta.funcionaria?.salario_base || 0;
-                    const aplicavel = falta.desconto_aplicado && !falta.justificativa;
-                    const valorDia = salario / 30;
-                    const desconto = aplicavel ? valorDia * 2 : 0;
-                    return `R$ ${desconto.toFixed(2)}`;
-                  })()}
-                </TableCell>
-
-
-
-
-
+                  <span className={`px-2 py-1 rounded text-xs ${
+                        falta.desconto_aplicado 
+                          ? 'bg-red-100 text-red-800' 
+                          : 'bg-green-100 text-green-800'
+                      }`}>
+                        {falta.desconto_aplicado ? 'Sim' : 'Não'}
+                      </span>
+                  </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(falta)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(falta.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(falta)}><Edit className="h-4 w-4" /></Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDelete(falta.id)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              ))
+            ) : (
+                <TableRow>
+                    <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                        Nenhuma falta encontrada com os filtros selecionados.
+                    </TableCell>
+                </TableRow>
+            )}
             </TableBody>
           </Table>
         </CardContent>

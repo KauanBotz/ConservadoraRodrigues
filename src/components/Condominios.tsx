@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Building2, Plus, Edit, Eye, MapPin, DollarSign, FileText, FileCheck, Loader2 } from "lucide-react";
+import { Building2, Plus, Edit, Eye, MapPin, DollarSign, FileText, FileCheck, Loader2, Search } from "lucide-react";
 import { useCondominios, type Condominio } from "@/hooks/useCondominios";
 
 export function Condominios() {
@@ -21,6 +21,7 @@ export function Condominios() {
     recebe_nota_fiscal: false,
     status: 'Ativo' as 'Ativo' | 'Inativo',
   });
+  const [searchTerm, setSearchTerm] = useState(''); // Estado para o termo de pesquisa
 
   const handleEdit = (condominio: Condominio) => {
     setDetalhesCondominio(null);
@@ -97,6 +98,12 @@ export function Condominios() {
       </div>
     );
   }
+  
+  // Filtra os condomínios com base no termo de pesquisa
+  const filteredCondominios = condominios.filter(c =>
+    c.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.endereco.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -205,6 +212,18 @@ export function Condominios() {
           </DialogContent>
         </Dialog>
       </div>
+      
+      {/* --- CAMPO DE PESQUISA ADICIONADO --- */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+        <Input
+          type="text"
+          placeholder="Pesquisar por nome ou endereço..."
+          className="w-full pl-10"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
 
       <Card className="border-l-4 border-l-secondary">
         <CardContent className="p-6">
@@ -226,66 +245,71 @@ export function Condominios() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-      {condominios
-        .map((condominio) => (
-          <Card key={condominio.id} className={`hover:shadow-lg transition-all duration-300 border-l-4 ${condominio.status === 'Ativo' ? 'border-l-yellow-400 bg-white' : 'border-l-red-300 bg-gray-100 text-muted-foreground'}`}>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="text-lg text-foreground">{condominio.nome}</CardTitle>
-            <div className="flex items-center gap-2 mt-1">
-            <Badge className={`text-xs px-2 py-1 rounded ${condominio.status === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>
-                {condominio.status}
-            </Badge>
-              {condominio.recebe_nota_fiscal && (
-                <Badge variant="outline" className="text-xs">Nota Fiscal</Badge>
-              )}
+        {filteredCondominios.length > 0 ? (
+          filteredCondominios.map((condominio) => (
+            <Card key={condominio.id} className={`hover:shadow-lg transition-all duration-300 border-l-4 ${condominio.status === 'Ativo' ? 'border-l-yellow-400 bg-white' : 'border-l-red-300 bg-gray-100 text-muted-foreground'}`}>
+                <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                    <div>
+                        <CardTitle className="text-lg text-foreground">{condominio.nome}</CardTitle>
+                        <div className="flex items-center gap-2 mt-1">
+                        <Badge className={`text-xs px-2 py-1 rounded ${condominio.status === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>
+                            {condominio.status}
+                        </Badge>
+                        {condominio.recebe_nota_fiscal && (
+                            <Badge variant="outline" className="text-xs">Nota Fiscal</Badge>
+                        )}
+                        </div>
+                    </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-3">
+                    <div className="flex items-start gap-2 text-sm">
+                        <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+                        <div>
+                        <span className="text-muted-foreground block">Endereço:</span>
+                        <span className="font-medium text-xs leading-relaxed">{condominio.endereco}</span>
+                        </div>
+                    </div>
+                    {condominio.valor_servico && (
+                        <div className="flex items-center gap-2 text-sm">
+                        <DollarSign className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Valor Mensal:</span>
+                        <span className="font-bold text-secondary">R$ {condominio.valor_servico.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        </div>
+                    )}
+                    {condominio.contrato_digital && (
+                        <div className="flex items-center gap-2 text-sm">
+                        <FileText className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Contrato:</span>
+                        <Button asChild variant="link" className="h-auto p-0 text-xs text-primary"><a href={condominio.contrato_digital} target="_blank" rel="noopener noreferrer">Ver documento</a></Button>
+                        </div>
+                    )}
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(condominio)} className="flex-1"><Edit className="w-3 h-3 mr-1" />Editar</Button>
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => handleDetails(condominio)}><Eye className="w-3 h-3 mr-1" />Detalhes</Button>
+                    </div>
+                </CardContent>
+            </Card>
+        ))
+        ) : (
+            <div className="col-span-full text-center py-10">
+                <p className="text-muted-foreground">Nenhum condomínio encontrado com o termo pesquisado.</p>
             </div>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-3">
-          <div className="flex items-start gap-2 text-sm">
-            <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
-            <div>
-              <span className="text-muted-foreground block">Endereço:</span>
-              <span className="font-medium text-xs leading-relaxed">{condominio.endereco}</span>
-            </div>
-          </div>
-          {condominio.valor_servico && (
-            <div className="flex items-center gap-2 text-sm">
-              <DollarSign className="w-4 h-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Valor Mensal:</span>
-              <span className="font-bold text-secondary">R$ {condominio.valor_servico.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-            </div>
-          )}
-          {condominio.contrato_digital && (
-            <div className="flex items-center gap-2 text-sm">
-              <FileText className="w-4 h-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Contrato:</span>
-              <Button asChild variant="link" className="h-auto p-0 text-xs text-primary"><a href={condominio.contrato_digital} target="_blank" rel="noopener noreferrer">Ver documento</a></Button>
-            </div>
-          )}
-        </div>
-        <div className="flex gap-2 pt-2">
-          <Button variant="outline" size="sm" onClick={() => handleEdit(condominio)} className="flex-1"><Edit className="w-3 h-3 mr-1" />Editar</Button>
-          <Button variant="outline" size="sm" className="flex-1" onClick={() => handleDetails(condominio)}><Eye className="w-3 h-3 mr-1" />Detalhes</Button>
-        </div>
-      </CardContent>
-    </Card>
-    ))}
-    </div>
+        )}
+      </div>
 
-    {condominios.length === 0 && (
-    <Card className="text-center py-12">
-        <CardContent>
-        <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-foreground mb-2">Nenhum condomínio cadastrado</h3>
-        <p className="text-muted-foreground mb-4">Comece adicionando o primeiro condomínio ao sistema</p>
-        <Button onClick={handleAddNew} className="bg-primary hover:bg-primary/90"><Plus className="w-4 h-4 mr-2" />Adicionar Primeiro Condomínio</Button>
-        </CardContent>
-    </Card>
+    {condominios.length === 0 && !loading && (
+        <Card className="text-center py-12">
+            <CardContent>
+            <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">Nenhum condomínio cadastrado</h3>
+            <p className="text-muted-foreground mb-4">Comece adicionando o primeiro condomínio ao sistema</p>
+            <Button onClick={handleAddNew} className="bg-primary hover:bg-primary/90"><Plus className="w-4 h-4 mr-2" />Adicionar Primeiro Condomínio</Button>
+            </CardContent>
+        </Card>
     )}
     </div>
   );
