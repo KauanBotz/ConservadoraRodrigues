@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export interface Escala {
   id: string;
-  dia_da_semana: string;
+  dia_semana: string; // Correção: de 'dia_da_semana' para 'dia_semana'
   horas_trabalho: number;
   id_condominio: string | null;
   id_funcionaria: string | null;

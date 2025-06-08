@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Building2, Calendar, AlertTriangle, DollarSign, FileText } from "lucide-react";
+import { Users, Building2, Calendar, AlertTriangle, DollarSign, FileText, Loader2 } from "lucide-react";
 import { useFuncionarias } from "@/hooks/useFuncionarias";
 import { useCondominios } from "@/hooks/useCondominios";
 import { useFaltas } from "@/hooks/useFaltas";
@@ -7,70 +7,77 @@ import { useSalarios } from "@/hooks/useSalarios";
 import { useEscalas } from "@/hooks/useEscalas";
 
 export function Dashboard() {
-  const { funcionarias = [] } = useFuncionarias();
-  const { condominios = [] } = useCondominios();
-  const { faltas = [] } = useFaltas();
-  const { salarios = [] } = useSalarios();
-  const { escalas = [] } = useEscalas();
+  const { funcionarias = [], loading: loadingFuncionarias } = useFuncionarias();
+  const { condominios = [], loading: loadingCondominios } = useCondominios();
+  const { faltas = [], loading: loadingFaltas } = useFaltas();
+  const { salarios = [], loading: loadingSalarios } = useSalarios();
+  const { escalas = [], loading: loadingEscalas } = useEscalas();
+
+  const isLoading = loadingFuncionarias || loadingCondominios || loadingFaltas || loadingSalarios || loadingEscalas;
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const hoje = new Date();
-  const diaAtual = hoje.getDate();
   const mesAtual = hoje.getMonth();
   const anoAtual = hoje.getFullYear();
 
-  const mapDia = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
-  const diaSemanaAtual = mapDia[hoje.getDay()];
+  const mapNumeroParaDiaString: { [key: number]: string } = {
+    0: 'domingo',
+    1: 'segunda',
+    2: 'terça',
+    3: 'quarta',
+    4: 'quinta',
+    5: 'sexta',
+    6: 'sábado'
+  };
+  const diaSemanaAtual = mapNumeroParaDiaString[hoje.getDay()];
 
-  const quintoDiaUtil = (() => {
-    let dia = 1;
-    let uteis = 0;
-    while (uteis < 5) {
-      const data = new Date(anoAtual, mesAtual, dia);
-      const diaSemana = data.getDay();
-      if (diaSemana !== 0 && diaSemana !== 6) uteis++;
-      if (uteis < 5) dia++;
+  const gastoSalarios = funcionarias.reduce((total, funcionaria) => {
+    if (funcionaria.status !== 'Ativa' || !funcionaria.salario_base) {
+      return total;
     }
-    return dia;
-  })();
-
-  const gastoSalarios = salarios.reduce((total, salario) => {
-    if (!salario.id_funcionaria) return total;
+    const salarioBase = Number(funcionaria.salario_base) || 0;
     const faltasDaFunc = faltas.filter(f =>
-      f.id_funcionaria === salario.id_funcionaria &&
+      f.id_funcionaria === funcionaria.id &&
       new Date(f.data).getMonth() === mesAtual &&
-      new Date(f.data).getFullYear() === anoAtual
+      new Date(f.data).getFullYear() === anoAtual &&
+      f.justificativa === false
     );
-    const salarioBase = Number(salario.salario_base) || 0;
-    const desconto = faltasDaFunc.reduce((acc, falta) =>
-      acc + (falta.justificativa === false ? salarioBase / 30 : 0), 0
-    );
-    const salarioFinal = diaAtual > quintoDiaUtil ? salarioBase - desconto : salarioBase;
-    return total + salarioFinal;
+    const desconto = faltasDaFunc.length * (salarioBase / 30);
+    return total + (salarioBase - desconto);
   }, 0);
 
-  const totalPassagens = salarios.reduce((total, salario) => {
-    if (!salario.id_funcionaria) return total;
-    const passagens = Number(salario.total_passagens);
-    return total + (isNaN(passagens) ? 0 : passagens);
+  const totalPassagens = funcionarias.reduce((total, funcionaria) => {
+    if (funcionaria.status !== 'Ativa' || !funcionaria.valor_passagem || !funcionaria.horas_semanais) {
+      return total;
+    }
+    const diasTrabalhadosPorSemana = funcionaria.horas_semanais / 8;
+    const custoMensalPassagens = funcionaria.valor_passagem * diasTrabalhadosPorSemana * 4.5;
+    return total + custoMensalPassagens;
   }, 0);
 
-  const faltasRecentes = faltas.filter(f => {
+  // Alterado para mostrar as faltas do mês atual inteiro
+  const faltasDoMes = faltas.filter(f => {
     const dataFalta = new Date(f.data);
-    const diasDiferenca = (hoje.getTime() - dataFalta.getTime()) / (1000 * 60 * 60 * 24);
-    return diasDiferenca <= 15;
+    return dataFalta.getMonth() === mesAtual && dataFalta.getFullYear() === anoAtual;
   });
 
-  const escalasHoje = escalas.filter(e =>
-    e.dia_da_semana?.toLowerCase().includes(diaSemanaAtual)
-  );
+  const escalasHoje = escalas.filter(escala => {
+    if (!escala.dia_semana) return false;
+    const diaDaEscala = escala.dia_semana.trim().toLowerCase().replace('-feira', '');
+    return diaDaEscala === diaSemanaAtual;
+  });
 
   const stats = {
     totalFuncionarias: funcionarias.filter(f => f.status === 'Ativa').length,
     totalCondominios: condominios.filter(c => c.status === 'Ativo').length,
-    faltasEstesMes: faltas.filter(f => {
-      const d = new Date(f.data);
-      return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
-    }).length,
+    faltasEstesMes: faltasDoMes.length,
     gastoSalarios,
     totalPassagens,
     escalasAtivas: escalas.length
@@ -93,8 +100,8 @@ export function Dashboard() {
         <DashboardCard title="Total de Funcionárias" icon={<Users />} value={stats.totalFuncionarias} color="primary" subtitle="Funcionárias ativas" />
         <DashboardCard title="Condomínios Atendidos" icon={<Building2 />} value={stats.totalCondominios} color="secondary" subtitle="Contratos ativos" />
         <DashboardCard title="Faltas Este Mês" icon={<AlertTriangle />} value={stats.faltasEstesMes} color="destructive" subtitle="Faltas registradas" />
-        <DashboardCard title="Gasto com Salários" icon={<DollarSign />} value={`R$ ${stats.gastoSalarios.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} color="primary" subtitle="Valor mensal" />
-        <DashboardCard title="Total Passagens" icon={<FileText />} value={`R$ ${stats.totalPassagens.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} color="secondary" subtitle="Gastos mensais" />
+        <DashboardCard title="Gasto com Salários" icon={<DollarSign />} value={`R$ ${stats.gastoSalarios.toFixed(2)}`} color="primary" subtitle="Valor mensal" />
+        <DashboardCard title="Total Passagens" icon={<FileText />} value={`R$ ${stats.totalPassagens.toFixed(2)}`} color="secondary" subtitle="Gastos mensais" />
         <DashboardCard title="Escalas Ativas" icon={<Calendar />} value={stats.escalasAtivas} color="primary" subtitle="Esta semana" />
       </div>
 
@@ -103,12 +110,12 @@ export function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-destructive" />
-              Faltas Recentes
+              Faltas do Mês
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {faltasRecentes.slice(0, 3).map((falta, i) => (
+              {faltasDoMes.slice(0, 3).map((falta, i) => (
                 <div key={i} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <div>
                     <p className="font-medium">{falta.funcionaria?.nome}</p>
@@ -121,6 +128,9 @@ export function Dashboard() {
                   </span>
                 </div>
               ))}
+              {faltasDoMes.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">Nenhuma falta registrada este mês.</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -129,22 +139,26 @@ export function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-primary" />
-              Próximas Escalas ({diaSemanaAtual})
+              Próximas Escalas ({diaSemanaAtual.charAt(0).toUpperCase() + diaSemanaAtual.slice(1)})
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {escalasHoje.map((escala, i) => (
-                <div key={i} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                  <div>
-                    <p className="font-medium">{escala.condominio?.nome}</p>
-                    <p className="text-sm text-muted-foreground">{escala.funcionaria?.nome}</p>
+              {escalasHoje.length > 0 ? (
+                escalasHoje.map((escala, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                    <div>
+                      <p className="font-medium">{escala.condominio?.nome}</p>
+                      <p className="text-sm text-muted-foreground">{escala.funcionaria?.nome}</p>
+                    </div>
+                    <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded">
+                      {escala.dia_semana}
+                    </span>
                   </div>
-                  <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded">
-                    {escala.dia_da_semana}
-                  </span>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">Nenhuma escala para hoje.</p>
+              )}
             </div>
           </CardContent>
         </Card>
