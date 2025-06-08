@@ -44,12 +44,12 @@ const menuItems = [
     url: "#relatorios",
     icon: BarChart3,
   },
-
+/*
   {
     title: "Documentos",
     url: "#documentos",
     icon: FileText,
-  },
+  },*/
 ];
 
 interface AppSidebarProps {
