@@ -197,6 +197,16 @@ export function Funcionarias() {
                     <div className="flex items-center gap-3"><CalendarX className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Data de Desligamento</p><p className="font-medium">{formatDate(detalhesFuncionaria.data_de_desligamento)}</p></div></div>
                   }
                   <div className="flex items-center gap-3"><Wallet className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Salário Base</p><p className="font-medium">R$ {detalhesFuncionaria.salario_base?.toFixed(2) || '0.00'}</p></div></div>
+                  <div className="flex items-center gap-3">
+                  <Wallet className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Custo Total de Passagens</p>
+                    <p className="font-medium">
+                      R$ {((detalhesFuncionaria.valor_passagem || 0) * (detalhesFuncionaria.passagens_mensais || 0)).toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+
                   
                   <Separator className="col-span-full" />
                   <div className="flex items-start gap-3 col-span-full"><Baby className="h-5 w-5 text-muted-foreground mt-1" /><div><p className="text-xs text-muted-foreground">Filhos (menores de 14 anos)</p>{(detalhesFuncionaria.cpfs_filhos && detalhesFuncionaria.cpfs_filhos.length > 0 && detalhesFuncionaria.cpfs_filhos[0] !== '') ? (<ul className="list-disc pl-5 font-medium">{detalhesFuncionaria.cpfs_filhos.map((cpf, i) => <li key={i}>{formatCPF(cpf)}</li>)}</ul>) : (<p className="font-medium">Nenhum filho informado</p>)}</div></div>
@@ -215,6 +225,8 @@ export function Funcionarias() {
                   <div className="space-y-2"><Label htmlFor="pis">PIS</Label><Input id="pis" value={formData.pis} onChange={(e) => setFormData({ ...formData, pis: e.target.value })} /></div>
                   <div className="space-y-2"><Label htmlFor="titulo_eleitor">Título de Eleitor</Label><Input id="titulo_eleitor" value={formData.titulo_eleitor} onChange={(e) => setFormData({ ...formData, titulo_eleitor: e.target.value })} /></div>
                   <div className="space-y-2"><Label htmlFor="salario">Salário Base</Label><Input id="salario" type="number" step="0.01" value={formData.salario_base} onChange={(e) => setFormData({ ...formData, salario_base: e.target.value })} /></div>
+                  <div className="space-y-2"><Label htmlFor="valor_passagem">Valor da Passagem</Label><Input id="valor_passagem" type="number" step="0.01" value={formData.valor_passagem} onChange={(e) => setFormData({ ...formData, valor_passagem: e.target.value })} /></div>
+                  <div className="space-y-2"><Label htmlFor="passagens_mensais">Passagens Mensais</Label><Input id="passagens_mensais" type="number" value={formData.passagens_mensais} onChange={(e) => setFormData({ ...formData, passagens_mensais: e.target.value })} /></div>
                 </div>
                 <Separator className="my-6"/>
                 <div className="space-y-4">

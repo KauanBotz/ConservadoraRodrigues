@@ -228,6 +228,13 @@ export function Condominios() {
                       <div className="space-y-2"><Label htmlFor="vencimento_boleto">Dia do Vencimento <span className="text-red-500">*</span></Label><Select value={formData.vencimento_boleto} onValueChange={(value) => setFormData({ ...formData, vencimento_boleto: value })}><SelectTrigger><SelectValue placeholder="Selecione o dia" /></SelectTrigger><SelectContent>{Array.from({ length: 31 }, (_, i) => i + 1).map(day => (<SelectItem key={day} value={day.toString()}>{day}</SelectItem>))}</SelectContent></Select></div>
                     </div>
                     <Separator className="my-6" />
+                    <div className="space-y-4"></div>
+                    <Label className="text-base font-medium">Controle Administrativo</Label>
+                    <div className="flex items-center space-x-2 pt-2">
+                        <Switch id="status" checked={formData.status === 'Ativo'} onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? 'Ativo' : 'Inativo' })} />
+                        <Label htmlFor="status">Condomínio {formData.status}</Label>
+                    </div>
+                    <Separator className="my-6" />
                     <div className="space-y-4">
                         <Label className="text-base font-medium">Transporte</Label>
                         <RadioGroup value={formData.transporte_tipo} onValueChange={(value) => setFormData({...formData, transporte_tipo: value})} className="flex space-x-4 pt-2">
@@ -236,7 +243,7 @@ export function Condominios() {
                             <div className="flex items-center space-x-2"><RadioGroupItem value="veiculo_empresa" id="veiculo"/><Label htmlFor="veiculo">Veículo da Empresa</Label></div>
                         </RadioGroup>
                         {formData.transporte_tipo === 'onibus' && (
-                            <div className="space-y-4 pl-2 pt-4 border-l-2 ml-2">
+                            <div className="space-y-2 pl-2 pt-1 border-l-2 ml-2">
                                 <Button type="button" variant="outline" size="sm" onClick={addLinhaField}><Plus className="h-4 w-4 mr-2"/>Adicionar Linha de Ônibus</Button>
                                 {linhasDeOnibus.length > 0 && linhasDeOnibus.map((onibus, index) => (
                                     <div key={index} className="space-y-3 p-3 bg-muted/50 rounded-lg">
@@ -253,11 +260,6 @@ export function Condominios() {
                                 ))}
                             </div>
                         )}
-                    </div>
-                    <Separator className="my-6" />
-                    <div className="flex items-center space-x-2 pt-2">
-                        <Switch id="status" checked={formData.status === 'Ativo'} onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? 'Ativo' : 'Inativo' })} />
-                        <Label htmlFor="status">Condomínio {formData.status}</Label>
                     </div>
                 </form>
                 </ScrollArea>
