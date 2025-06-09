@@ -4,6 +4,7 @@ import { useFuncionarias } from "@/hooks/useFuncionarias";
 import { useCondominios } from "@/hooks/useCondominios";
 import { useFaltas } from "@/hooks/useFaltas";
 import { useEscalas } from "@/hooks/useEscalas";
+import { ScrollArea } from "@/components/ui/scroll-area"; // Importa o componente de rolagem
 
 export function Dashboard() {
   const { funcionarias = [], loading: loadingFuncionarias } = useFuncionarias();
@@ -24,51 +25,39 @@ export function Dashboard() {
   const hoje = new Date();
   const mesAtual = hoje.getMonth();
   const anoAtual = hoje.getFullYear();
+  
+  // Pega o nome do mês atual para exibir no título do card
+  const nomeMesAtual = hoje.toLocaleString('pt-BR', { month: 'long' });
+  const mesCapitalizado = nomeMesAtual.charAt(0).toUpperCase() + nomeMesAtual.slice(1);
+
 
   const mapNumeroParaDiaString: { [key: number]: string } = {
-    0: 'domingo',
-    1: 'segunda',
-    2: 'terça',
-    3: 'quarta',
-    4: 'quinta',
-    5: 'sexta',
-    6: 'sábado'
+    0: 'domingo', 1: 'segunda', 2: 'terça', 3: 'quarta', 4: 'quinta', 5: 'sexta', 6: 'sábado'
   };
   const diaSemanaAtual = mapNumeroParaDiaString[hoje.getDay()];
 
+  const faltasDoMes = faltas.filter(f => {
+    if (!f.data) return false;
+    const [year, month] = f.data.split('-').map(Number);
+    return year === anoAtual && (month - 1) === mesAtual;
+  });
+
   const gastoSalarios = funcionarias.reduce((total, funcionaria) => {
-    if (funcionaria.status !== 'Ativa' || !funcionaria.salario_base) {
-      return total;
-    }
+    if (funcionaria.status !== 'Ativa' || !funcionaria.salario_base) return total;
+    
     const salarioBase = Number(funcionaria.salario_base) || 0;
     const valorDiario = salarioBase / 30;
-
-    const faltasComDesconto = faltas.filter(f =>
-      f.id_funcionaria === funcionaria.id &&
-      new Date(f.data).getUTCMonth() === mesAtual &&
-      new Date(f.data).getUTCFullYear() === anoAtual &&
-      f.desconto_aplicado === true
-    );
-    
-    // Lógica de desconto atualizada para incluir DSR (x2)
+    const faltasComDesconto = faltasDoMes.filter(f => f.id_funcionaria === funcionaria.id && f.desconto_aplicado === true);
     const totalDescontos = faltasComDesconto.length * (valorDiario * 2);
-    const salarioFinal = salarioBase - totalDescontos;
-
-    return total + salarioFinal;
+    
+    return total + (salarioBase - totalDescontos);
   }, 0);
 
   const totalPassagens = funcionarias.reduce((total, funcionaria) => {
-    if (funcionaria.status !== 'Ativa') {
-      return total;
-    }
+    if (funcionaria.status !== 'Ativa') return total;
     const custoMensal = (funcionaria.passagens_mensais || 0) * (funcionaria.valor_passagem || 0);
     return total + custoMensal;
   }, 0);
-
-  const faltasDoMes = faltas.filter(f => {
-    const dataFalta = new Date(f.data);
-    return dataFalta.getMonth() === mesAtual && dataFalta.getFullYear() === anoAtual;
-  });
 
   const escalasHoje = escalas.filter(escala => {
     if (!escala.dia_semana) return false;
@@ -101,7 +90,7 @@ export function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <DashboardCard title="Total de Funcionárias" icon={<Users />} value={stats.totalFuncionarias} color="primary" subtitle="Funcionárias ativas" />
         <DashboardCard title="Condomínios Atendidos" icon={<Building2 />} value={stats.totalCondominios} color="secondary" subtitle="Contratos ativos" />
-        <DashboardCard title="Faltas Este Mês" icon={<AlertTriangle />} value={stats.faltasEstesMes} color="destructive" subtitle="Faltas registradas" />
+        <DashboardCard title="Faltas Este Mês" icon={<AlertTriangle />} value={stats.faltasEstesMes} color="destructive" subtitle={`Faltas em ${mesCapitalizado}`} />
         <DashboardCard title="Gasto com Salários" icon={<DollarSign />} value={`R$ ${stats.gastoSalarios.toFixed(2)}`} color="primary" subtitle="Valor mensal" />
         <DashboardCard title="Total Passagens" icon={<FileText />} value={`R$ ${stats.totalPassagens.toFixed(2)}`} color="secondary" subtitle="Gastos mensais" />
         <DashboardCard title="Escalas Ativas" icon={<Calendar />} value={stats.escalasAtivas} color="primary" subtitle="Esta semana" />
@@ -112,28 +101,34 @@ export function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-destructive" />
-              Faltas do Mês
+              {/* Título dinâmico com o nome do mês */}
+              Faltas de {mesCapitalizado}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {faltasDoMes.slice(0, 3).map((falta, i) => (
-                <div key={i} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                  <div>
-                    <p className="font-medium">{falta.funcionaria?.nome}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(falta.data).toLocaleDateString('pt-BR', {timeZone: 'UTC'})} - {falta.justificativa ? "Com justificativa" : "Sem justificativa"}
-                    </p>
-                  </div>
-                  <span className={`text-xs px-2 py-1 rounded ${falta.justificativa ? "bg-secondary/20 text-secondary" : "bg-destructive/20 text-destructive"}`}>
-                    {falta.justificativa ? "Justificada" : "Desconto aplicado"}
-                  </span>
-                </div>
-              ))}
-              {faltasDoMes.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">Nenhuma falta registrada este mês.</p>
-              )}
-            </div>
+            {/* Adiciona uma área de rolagem caso a lista seja longa */}
+            <ScrollArea className="h-[200px] pr-4">
+              <div className="space-y-4">
+                {/* Remove o .slice(0, 3) para mostrar todas as faltas */}
+                {faltasDoMes.length > 0 ? (
+                  faltasDoMes.map((falta, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <div>
+                        <p className="font-medium">{falta.funcionaria?.nome}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(falta.data).toLocaleDateString('pt-BR', {timeZone: 'UTC'})} - {falta.justificativa ? "Com justificativa" : "Sem justificativa"}
+                        </p>
+                      </div>
+                      <span className={`text-xs px-2 py-1 rounded ${falta.desconto_aplicado ? "bg-destructive/20 text-destructive" : "bg-green-500/20 text-green-600"}`}>
+                        {falta.desconto_aplicado ? "Desconto" : "Sem Desconto"}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">Nenhuma falta registrada este mês.</p>
+                )}
+              </div>
+            </ScrollArea>
           </CardContent>
         </Card>
 
@@ -141,7 +136,7 @@ export function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-primary" />
-              Próximas Escalas ({diaSemanaAtual.charAt(0).toUpperCase() + diaSemanaAtual.slice(1)})
+              Escalas de Hoje ({diaSemanaAtual.charAt(0).toUpperCase() + diaSemanaAtual.slice(1)})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -154,7 +149,7 @@ export function Dashboard() {
                       <p className="text-sm text-muted-foreground">{escala.funcionaria?.nome}</p>
                     </div>
                     <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded">
-                      {escala.dia_semana}
+                      {escala.dia_da_semana}
                     </span>
                   </div>
                 ))
