@@ -14,7 +14,7 @@ import { useCondominios, type Condominio, type OnibusDetalhe } from "@/hooks/use
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 
-// Funções de formatação para exibição
+// --- FUNÇÕES DE FORMATAÇÃO PARA EXIBIÇÃO ---
 const formatPhoneNumber = (phone: string | null) => {
     if (!phone) return 'Não informado';
     const cleaned = ('' + phone).replace(/\D/g, '');
@@ -40,31 +40,31 @@ const formatCNPJ = (cnpj: string | null) => {
     return cnpj;
 }
 
+// --- COMPONENTE PARA EXIBIR TRANSPORTE ---
 const TransporteInfo = ({condominio}: {condominio: Condominio | null}) => {
     if(!condominio) return null;
+    const { transporte_tipo, transporte_onibus_detalhes } = condominio;
 
-    if (condominio.transporte_tipo === 'veiculo_empresa') {
-        return <div className="flex items-center gap-3"><Truck className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Transporte</p><p className="font-medium">Veículo da Empresa</p></div></div>;
+    if (transporte_tipo === 'veiculo_empresa') {
+        return <div className="flex items-center gap-2 text-sm"><Truck className="w-4 h-4 text-muted-foreground" /><span>Veículo da Empresa</span></div>;
     }
-    if (condominio.transporte_tipo === 'onibus' && condominio.transporte_onibus_detalhes && condominio.transporte_onibus_detalhes.length > 0) {
+
+    if (transporte_tipo === 'onibus' && transporte_onibus_detalhes && transporte_onibus_detalhes.length > 0) {
         return (
-            <div className="flex items-start gap-3 col-span-full">
-                <Bus className="h-5 w-5 text-muted-foreground mt-1" />
-                <div>
-                    <p className="text-xs text-muted-foreground">Linhas de Ônibus</p>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                        {condominio.transporte_onibus_detalhes?.map((onibus, i) => (
-                            <Badge key={i} variant="outline" className={`font-normal ${onibus.tipo === 'move' ? 'bg-green-100 text-green-800 border-green-300' : 'bg-yellow-100 text-yellow-800 border-yellow-300'}`}>
-                                {onibus.linha}
-                            </Badge>
-                        ))}
-                    </div>
+            <div className="flex items-start gap-2 text-sm">
+                <Bus className="w-4 h-4 text-muted-foreground mt-1" />
+                <div className="flex flex-wrap gap-1">
+                    {transporte_onibus_detalhes.map((onibus, i) => (
+                        <Badge key={i} variant="outline" className={`font-normal ${onibus.tipo === 'move' ? 'bg-green-100 text-green-800 border-green-300' : 'bg-yellow-100 text-yellow-800 border-yellow-300'}`}>
+                            {onibus.linha}
+                        </Badge>
+                    ))}
                 </div>
             </div>
-        )
+        );
     }
     return null;
-}
+};
 
 export function Condominios() {
   const { condominios, loading, createCondominio, updateCondominio } = useCondominios();
@@ -73,18 +73,10 @@ export function Condominios() {
   const [editingCondominio, setEditingCondominio] = useState<Condominio | null>(null);
   const [detalhesCondominio, setDetalhesCondominio] = useState<Condominio | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  
   const [formData, setFormData] = useState({
-    nome: '',
-    endereco: '',
-    valor_servico: '',
-    recebe_nota_fiscal: false,
-    status: 'Ativo' as 'Ativo' | 'Inativo',
-    sindico: '',
-    email_sindico: '',
-    telefone_sindico: '',
-    vencimento_boleto: '',
-    cnpj: '',
-    transporte_tipo: 'nenhum',
+    nome: '', endereco: '', valor_servico: '', status: 'Ativo' as 'Ativo' | 'Inativo', sindico: '',
+    email_sindico: '', telefone_sindico: '', vencimento_boleto: '', cnpj: '', transporte_tipo: 'nenhum',
   });
   const [linhasDeOnibus, setLinhasDeOnibus] = useState<OnibusDetalhe[]>([]);
 
@@ -106,51 +98,47 @@ export function Condominios() {
   const removeLinhaField = (index: number) => setLinhasDeOnibus(linhasDeOnibus.filter((_, i) => i !== index));
 
   const openDialog = (condominio: Condominio | null = null, mode: 'edit' | 'details' = 'edit') => {
-    if(mode === 'details' && condominio){
-        setDetalhesCondominio(condominio);
-        setEditingCondominio(null);
+    if (mode === 'details' && condominio) {
+      setDetalhesCondominio(condominio);
+      setEditingCondominio(null);
     } else {
-        setEditingCondominio(condominio);
-        setDetalhesCondominio(null);
-        if(condominio){
-            setFormData({
-              nome: condominio.nome,
-              endereco: condominio.endereco,
-              valor_servico: condominio.valor_servico?.toString() || '',
-              recebe_nota_fiscal: condominio.recebe_nota_fiscal || false,
-              status: condominio.status,
-              sindico: condominio.sindico || '',
-              email_sindico: condominio.email_sindico || '',
-              telefone_sindico: condominio.telefone_sindico || '',
-              vencimento_boleto: condominio.vencimento_boleto?.toString() || '',
-              cnpj: condominio.cnpj || '',
-              transporte_tipo: condominio.transporte_tipo || 'nenhum',
-            });
-        } else {
-            setFormData({
-              nome: '', endereco: '', valor_servico: '', recebe_nota_fiscal: false, status: 'Ativo',
-              sindico: '', email_sindico: '', telefone_sindico: '', vencimento_boleto: '', cnpj: '', transporte_tipo: 'nenhum',
-            });
-        }
+      setEditingCondominio(condominio);
+      setDetalhesCondominio(null);
+      if (condominio) {
+        setFormData({
+          nome: condominio.nome,
+          endereco: condominio.endereco,
+          valor_servico: condominio.valor_servico?.toString() || '',
+          status: condominio.status,
+          sindico: condominio.sindico || '',
+          email_sindico: condominio.email_sindico || '',
+          telefone_sindico: condominio.telefone_sindico || '',
+          vencimento_boleto: condominio.vencimento_boleto?.toString() || '',
+          cnpj: condominio.cnpj || '',
+          transporte_tipo: condominio.transporte_tipo || 'nenhum',
+        });
+      } else {
+        setFormData({
+          nome: '', endereco: '', valor_servico: '', status: 'Ativo', sindico: '',
+          email_sindico: '', telefone_sindico: '', vencimento_boleto: '', cnpj: '', transporte_tipo: 'nenhum',
+        });
+      }
     }
     setIsDialogOpen(true);
   };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!formData.vencimento_boleto) {
-        toast({ title: "Campo Obrigatório", description: "Por favor, selecione o dia do vencimento do boleto.", variant: "destructive" });
+        toast({ title: "Campo Obrigatório", description: "Por favor, selecione o dia do vencimento.", variant: "destructive" });
         return;
     }
-
     const condominioData = {
       ...formData,
       valor_servico: formData.valor_servico ? parseFloat(formData.valor_servico) : null,
       vencimento_boleto: parseInt(formData.vencimento_boleto),
       transporte_onibus_detalhes: formData.transporte_tipo === 'onibus' ? linhasDeOnibus.filter(l => l.linha) : null,
     };
-
     try {
       if (editingCondominio) {
         await updateCondominio(editingCondominio.id, condominioData);
@@ -173,19 +161,28 @@ export function Condominios() {
         <div><h1 className="text-3xl font-bold text-foreground flex items-center gap-3"><Building2 className="h-8 w-8 text-primary" />Condomínios</h1><p className="text-muted-foreground">Gerencie os condomínios atendidos</p></div>
         <Button onClick={() => openDialog(null)}><Plus className="w-4 h-4 mr-2" />Novo Condomínio</Button>
       </div>
-      
+
       <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" /><Input type="text" placeholder="Pesquisar por nome ou CNPJ..." className="w-full pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
+
+      <Card className="border-l-4 border-l-secondary">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div><p className="text-sm text-muted-foreground">Receita Mensal (Ativos)</p><p className="text-3xl font-bold text-secondary">R$ {totalValorMensal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p></div>
+            <div className="text-right"><p className="text-sm text-muted-foreground">Condomínios Ativos</p><p className="text-2xl font-bold text-primary">{totalCondominiosAtivos}</p></div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredCondominios.map((condominio) => (
             <Card key={condominio.id} className={`hover:shadow-lg transition-all duration-300 border-l-4 ${condominio.status === 'Ativo' ? 'border-l-yellow-400 bg-white' : 'border-l-red-300 bg-gray-100 text-muted-foreground'}`}>
                 <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
-                        <div>
-                            <CardTitle className="text-lg text-foreground">{condominio.nome}</CardTitle>
-                            <p className="text-sm text-muted-foreground">{formatCNPJ(condominio.cnpj)}</p>
-                        </div>
-                        <Badge className={`text-xs px-2 py-1 rounded ${condominio.status === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>{condominio.status}</Badge>
+                    <div>
+                        <CardTitle className="text-lg text-foreground">{condominio.nome}</CardTitle>
+                        <p className="text-sm text-muted-foreground">{formatCNPJ(condominio.cnpj)}</p>
+                    </div>
+                    <Badge className={`text-xs px-2 py-1 rounded ${condominio.status === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>{condominio.status}</Badge>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -203,7 +200,7 @@ export function Condominios() {
       </div>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent className="max-w-3xl flex flex-col h-auto md:h-[90vh]">
+            <DialogContent className="max-w-2xl flex flex-col h-auto md:h-[90vh]">
                 <DialogHeader><DialogTitle>{editingCondominio ? 'Editar Condomínio' : detalhesCondominio ? 'Detalhes do Condomínio' : 'Novo Condomínio'}</DialogTitle></DialogHeader>
                 {detalhesCondominio ? (
                     <div className="space-y-6 pt-4">
@@ -213,16 +210,16 @@ export function Condominios() {
                             <div className="flex items-center gap-3"><UserCircle className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Síndico(a)</p><p className="font-medium">{detalhesCondominio.sindico || 'Não informado'}</p></div></div>
                             <div className="flex items-center gap-3 col-span-full"><MapPin className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Endereço</p><p className="font-medium">{detalhesCondominio.endereco}</p></div></div>
                             <Separator className="col-span-full"/>
-                            <div className="flex items-center gap-3"><Phone className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Telefone Síndico</p><p className="font-medium">{formatPhoneNumber(detalhesCondominio.telefone_sindico)}</p></div></div>
                             <div className="flex items-center gap-3 col-span-2"><Mail className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Email Síndico</p><p className="font-medium">{detalhesCondominio.email_sindico || 'Não informado'}</p></div></div>
+                            <div className="flex items-center gap-3"><Phone className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Telefone Síndico</p><p className="font-medium">{formatPhoneNumber(detalhesCondominio.telefone_sindico)}</p></div></div>
                             <Separator className="col-span-full"/>
                             <div className="flex items-center gap-3"><DollarSign className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Valor do Serviço</p><p className="font-medium">R$ {detalhesCondominio.valor_servico?.toFixed(2) || '0.00'}</p></div></div>
                             <div className="flex items-center gap-3"><CalendarDays className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Vencimento</p><p className="font-medium">Todo dia {detalhesCondominio.vencimento_boleto || 'N/A'}</p></div></div>
-                            <div className="flex items-center gap-3">
+                             <div className="flex items-center gap-3">
                                 {detalhesCondominio.status === 'Ativo' ? <ShieldCheck className="h-5 w-5 text-green-600"/> : <ShieldX className="h-5 w-5 text-red-600" />}
                                 <div><p className="text-xs text-muted-foreground">Situação</p><Badge variant="outline" className={detalhesCondominio.status === 'Ativo' ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}>{detalhesCondominio.status}</Badge></div>
                             </div>
-                            <div className="col-span-full"><TransporteInfo condominio={detalhesCondominio}/></div>
+                            <TransporteInfo condominio={detalhesCondominio}/>
                         </div>
                         <DialogFooter className="pt-4"><Button variant="outline" onClick={closeDialog}>Fechar</Button></DialogFooter>
                     </div>
@@ -231,14 +228,14 @@ export function Condominios() {
                     <ScrollArea className="flex-grow pr-6 -mr-6">
                         <form id="condo-form" onSubmit={handleSubmit} className="space-y-6">
                             <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-2"><Label htmlFor="nome">Nome do Condomínio</Label><Input id="nome" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} required /></div>
-                              <div className="space-y-2"><Label htmlFor="cnpj">CNPJ</Label><Input id="cnpj" value={formData.cnpj} onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })} /></div>
-                              <div className="space-y-2 col-span-2"><Label htmlFor="endereco">Endereço Completo</Label><Input id="endereco" value={formData.endereco} onChange={(e) => setFormData({ ...formData, endereco: e.target.value })} required /></div>
-                              <div className="space-y-2"><Label htmlFor="sindico">Nome do Síndico(a)</Label><Input id="sindico" value={formData.sindico} onChange={(e) => setFormData({ ...formData, sindico: e.target.value })} /></div>
-                              <div className="space-y-2"><Label htmlFor="telefone_sindico">Telefone do Síndico(a)</Label><Input id="telefone_sindico" value={formData.telefone_sindico} onChange={(e) => setFormData({ ...formData, telefone_sindico: e.target.value })} /></div>
-                              <div className="space-y-2 col-span-2"><Label htmlFor="email_sindico">Email do Síndico(a)</Label><Input id="email_sindico" type="email" value={formData.email_sindico} onChange={(e) => setFormData({ ...formData, email_sindico: e.target.value })} /></div>
-                              <div className="space-y-2"><Label htmlFor="valor">Valor Mensal (R$)</Label><Input id="valor" type="number" step="0.01" value={formData.valor_servico} onChange={(e) => setFormData({ ...formData, valor_servico: e.target.value })} /></div>
-                              <div className="space-y-2"><Label htmlFor="vencimento_boleto">Dia do Vencimento <span className="text-red-500">*</span></Label><Select value={formData.vencimento_boleto} onValueChange={(value) => setFormData({ ...formData, vencimento_boleto: value })}><SelectTrigger><SelectValue placeholder="Selecione o dia" /></SelectTrigger><SelectContent>{Array.from({ length: 31 }, (_, i) => i + 1).map(day => (<SelectItem key={day} value={day.toString()}>{day}</SelectItem>))}</SelectContent></Select></div>
+                                <div className="space-y-2 col-span-2"><Label htmlFor="nome">Nome do Condomínio</Label><Input id="nome" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} required /></div>
+                                <div className="space-y-2"><Label htmlFor="cnpj">CNPJ</Label><Input id="cnpj" value={formData.cnpj} onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })} /></div>
+                                <div className="space-y-2"><Label htmlFor="sindico">Nome do Síndico(a)</Label><Input id="sindico" value={formData.sindico} onChange={(e) => setFormData({ ...formData, sindico: e.target.value })} /></div>
+                                <div className="space-y-2 col-span-2"><Label htmlFor="endereco">Endereço Completo</Label><Input id="endereco" value={formData.endereco} onChange={(e) => setFormData({ ...formData, endereco: e.target.value })} required /></div>
+                                <div className="space-y-2"><Label htmlFor="telefone_sindico">Telefone do Síndico(a)</Label><Input id="telefone_sindico" value={formData.telefone_sindico} onChange={(e) => setFormData({ ...formData, telefone_sindico: e.target.value })} /></div>
+                                <div className="space-y-2"><Label htmlFor="email_sindico">Email do Síndico(a)</Label><Input id="email_sindico" type="email" value={formData.email_sindico} onChange={(e) => setFormData({ ...formData, email_sindico: e.target.value })} /></div>
+                                <div className="space-y-2"><Label htmlFor="valor">Valor Mensal (R$)</Label><Input id="valor" type="number" step="0.01" value={formData.valor_servico} onChange={(e) => setFormData({ ...formData, valor_servico: e.target.value })} /></div>
+                                <div className="space-y-2"><Label htmlFor="vencimento_boleto">Dia do Vencimento <span className="text-red-500">*</span></Label><Select value={formData.vencimento_boleto} onValueChange={(value) => setFormData({ ...formData, vencimento_boleto: value })}><SelectTrigger><SelectValue placeholder="Selecione o dia" /></SelectTrigger><SelectContent>{Array.from({ length: 31 }, (_, i) => i + 1).map(day => (<SelectItem key={day} value={day.toString()}>{day}</SelectItem>))}</SelectContent></Select></div>
                             </div>
                             <Separator/>
                             <div className="space-y-4">
@@ -250,7 +247,6 @@ export function Condominios() {
                                 </RadioGroup>
                                 {formData.transporte_tipo === 'onibus' && (
                                     <div className="space-y-4 pl-2 pt-2 border-l-2 ml-2">
-                                        <Button type="button" variant="outline" size="sm" onClick={addLinhaField}><Plus className="h-4 w-4 mr-2"/>Adicionar Linha</Button>
                                         {linhasDeOnibus.map((onibus, index) => (
                                             <div key={index} className="space-y-3 p-3 bg-muted/50 rounded-lg">
                                                 <div className="flex justify-between items-center"><Label htmlFor={`linha-${index}`} className="font-semibold">Linha de Ônibus {index + 1}</Label><Button type="button" variant="ghost" size="icon" onClick={() => removeLinhaField(index)}><Trash2 className="h-4 w-4 text-red-500" /></Button></div>
@@ -261,17 +257,13 @@ export function Condominios() {
                                                 </RadioGroup>
                                             </div>
                                         ))}
+                                       <div className="mt-2"><Button type="button" variant="outline" size="sm" onClick={addLinhaField}><Plus className="h-4 w-4 mr-2"/>Adicionar Linha</Button></div>
                                     </div>
                                 )}
                             </div>
-                            <Separator/>
-                            <div className="space-y-2">
-                                <Label className="text-base font-medium">Controle Administrativo</Label>
-                                <div className="flex items-center space-x-2 pt-2">
-                                    <Switch id="status" checked={formData.status === 'Ativo'} onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? 'Ativo' : 'Inativo' })} />
-                                    <Label htmlFor="status">Condomínio {formData.status}</Label>
-                                </div>
-                            </div>
+                            {editingCondominio && (
+                                <><Separator /><div className="space-y-2"><Label className="text-base font-medium">Controle Administrativo</Label><div className="flex items-center space-x-2 pt-2"><Switch id="status" checked={formData.status === 'Ativo'} onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? 'Ativo' : 'Inativo' })} /><Label htmlFor="status">Condomínio {formData.status}</Label></div></div></>
+                            )}
                         </form>
                     </ScrollArea>
                     <DialogFooter className="pt-4"><Button type="button" variant="outline" onClick={closeDialog}>Cancelar</Button><Button type="submit" form="condo-form">{editingCondominio ? 'Salvar Alterações' : 'Cadastrar'}</Button></DialogFooter>
