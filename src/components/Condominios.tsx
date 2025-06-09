@@ -43,7 +43,7 @@ const formatCNPJ = (cnpj: string | null) => {
 // Componente para exibir informações de transporte de forma consistente
 const TransporteInfo = ({ condominio }: { condominio: Condominio | null }) => {
     if (!condominio || !condominio.transporte_tipo || condominio.transporte_tipo === 'nenhum') {
-        return null; // Não exibe nada se for 'nenhum'
+        return null;
     }
 
     if (condominio.transporte_tipo === 'veiculo_empresa') {
@@ -87,8 +87,8 @@ export function Condominios() {
     } else {
       setLinhasDeOnibus([]);
     }
-  }, [isDialogOpen, editingCondominio])
-
+  }, [isDialogOpen, editingCondominio]);
+  
   const handleLinhaChange = (index: number, field: 'linha' | 'tipo', value: string) => {
     const novasLinhas = [...linhasDeOnibus];
     novasLinhas[index] = {...novasLinhas[index], [field]: value as 'bairro' | 'move'};
@@ -96,9 +96,7 @@ export function Condominios() {
   }
 
   const addLinhaField = () => setLinhasDeOnibus([...linhasDeOnibus, { linha: '', tipo: 'bairro' }]);
-  const removeLinhaField = (index: number) => {
-      setLinhasDeOnibus(linhasDeOnibus.filter((_, i) => i !== index));
-  };
+  const removeLinhaField = (index: number) => setLinhasDeOnibus(linhasDeOnibus.filter((_, i) => i !== index));
 
   const openDialog = (condominio: Condominio | null = null, mode: 'edit' | 'details' = 'edit') => {
     if (mode === 'details' && condominio) {
@@ -160,38 +158,38 @@ export function Condominios() {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div><h1 className="text-3xl font-bold text-foreground flex items-center gap-3"><Building2 className="h-8 w-8 text-primary" />Condomínios</h1><p className="text-muted-foreground">Gerencie os condomínios atendidos</p></div>
-        <Button onClick={() => openDialog(null)}><Plus className="w-4 h-4 mr-2" />Novo Condomínio</Button>
-      </div>
-      
-      <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" /><Input type="text" placeholder="Pesquisar por nome ou CNPJ..." className="w-full pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
+        <div className="flex items-center justify-between">
+            <div><h1 className="text-3xl font-bold text-foreground flex items-center gap-3"><Building2 className="h-8 w-8 text-primary" />Condomínios</h1><p className="text-muted-foreground">Gerencie os condomínios atendidos</p></div>
+            <Button onClick={() => openDialog(null)}><Plus className="w-4 h-4 mr-2" />Novo Condomínio</Button>
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredCondominios.map((condominio) => (
-            <Card key={condominio.id} className={`hover:shadow-lg transition-all duration-300 border-l-4 ${condominio.status === 'Ativo' ? 'border-l-yellow-400 bg-white' : 'border-l-red-300 bg-gray-100 text-muted-foreground'}`}>
-                <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                    <div>
-                        <CardTitle className="text-lg text-foreground">{condominio.nome}</CardTitle>
-                        <p className="text-sm text-muted-foreground">{formatCNPJ(condominio.cnpj)}</p>
-                    </div>
-                    <Badge className={`text-xs px-2 py-1 rounded ${condominio.status === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>{condominio.status}</Badge>
-                    </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-2 text-sm"><UserCircle className="w-4 h-4 text-muted-foreground" /><span>{condominio.sindico || 'Síndico não informado'}</span></div>
-                        <TransporteInfo condominio={condominio} />
-                    </div>
-                    <div className="flex gap-2 pt-2">
-                        <Button variant="outline" size="sm" onClick={() => openDialog(condominio, 'edit')} className="flex-1"><Edit className="w-3 h-3 mr-1" />Editar</Button>
-                        <Button variant="outline" size="sm" onClick={() => openDialog(condominio, 'details')} className="flex-1"><Eye className="w-3 h-3 mr-1" />Detalhes</Button>
-                    </div>
-                </CardContent>
-            </Card>
-        ))}
-      </div>
+        <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" /><Input type="text" placeholder="Pesquisar por nome ou CNPJ..." className="w-full pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {filteredCondominios.map((condominio) => (
+                <Card key={condominio.id} className={`hover:shadow-lg transition-all duration-300 border-l-4 ${condominio.status === 'Ativo' ? 'border-l-yellow-400 bg-white' : 'border-l-red-300 bg-gray-100 text-muted-foreground'}`}>
+                    <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                        <div>
+                            <CardTitle className="text-lg text-foreground">{condominio.nome}</CardTitle>
+                            <p className="text-sm text-muted-foreground">{formatCNPJ(condominio.cnpj)}</p>
+                        </div>
+                        <Badge className={`text-xs px-2 py-1 rounded ${condominio.status === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>{condominio.status}</Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-sm"><UserCircle className="w-4 h-4 text-muted-foreground" /><span>{condominio.sindico || 'Síndico não informado'}</span></div>
+                            <TransporteInfo condominio={condominio} />
+                        </div>
+                        <div className="flex gap-2 pt-2">
+                            <Button variant="outline" size="sm" onClick={() => openDialog(condominio, 'edit')} className="flex-1"><Edit className="w-3 h-3 mr-1" />Editar</Button>
+                            <Button variant="outline" size="sm" onClick={() => openDialog(condominio, 'details')} className="flex-1"><Eye className="w-3 h-3 mr-1" />Detalhes</Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            ))}
+        </div>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogContent className="max-w-3xl flex flex-col h-auto md:h-[90vh]">
@@ -222,14 +220,14 @@ export function Condominios() {
                     <ScrollArea className="flex-grow pr-6 -mr-6">
                         <form id="condo-form" onSubmit={handleSubmit} className="space-y-6">
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2"><Label htmlFor="nome">Nome do Condomínio</Label><Input id="nome" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} required /></div>
-                                <div className="space-y-2"><Label htmlFor="cnpj">CNPJ</Label><Input id="cnpj" value={formData.cnpj} onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })} /></div>
-                                <div className="space-y-2 col-span-2"><Label htmlFor="endereco">Endereço Completo</Label><Input id="endereco" value={formData.endereco} onChange={(e) => setFormData({ ...formData, endereco: e.target.value })} required /></div>
-                                <div className="space-y-2"><Label htmlFor="sindico">Nome do Síndico(a)</Label><Input id="sindico" value={formData.sindico} onChange={(e) => setFormData({ ...formData, sindico: e.target.value })} /></div>
-                                <div className="space-y-2"><Label htmlFor="telefone_sindico">Telefone do Síndico(a)</Label><Input id="telefone_sindico" value={formData.telefone_sindico} onChange={(e) => setFormData({ ...formData, telefone_sindico: e.target.value })} /></div>
-                                <div className="space-y-2 col-span-2"><Label htmlFor="email_sindico">Email do Síndico(a)</Label><Input id="email_sindico" type="email" value={formData.email_sindico} onChange={(e) => setFormData({ ...formData, email_sindico: e.target.value })} /></div>
-                                <div className="space-y-2"><Label htmlFor="valor">Valor Mensal (R$)</Label><Input id="valor" type="number" step="0.01" value={formData.valor_servico} onChange={(e) => setFormData({ ...formData, valor_servico: e.target.value })} /></div>
-                                <div className="space-y-2"><Label htmlFor="vencimento_boleto">Dia do Vencimento <span className="text-red-500">*</span></Label><Select value={formData.vencimento_boleto} onValueChange={(value) => setFormData({ ...formData, vencimento_boleto: value })}><SelectTrigger><SelectValue placeholder="Selecione o dia" /></SelectTrigger><SelectContent>{Array.from({ length: 31 }, (_, i) => i + 1).map(day => (<SelectItem key={day} value={day.toString()}>{day}</SelectItem>))}</SelectContent></Select></div>
+                              <div className="space-y-2"><Label htmlFor="nome">Nome do Condomínio</Label><Input id="nome" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} required /></div>
+                              <div className="space-y-2"><Label htmlFor="cnpj">CNPJ</Label><Input id="cnpj" value={formData.cnpj} onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })} /></div>
+                              <div className="space-y-2 col-span-2"><Label htmlFor="endereco">Endereço Completo</Label><Input id="endereco" value={formData.endereco} onChange={(e) => setFormData({ ...formData, endereco: e.target.value })} required /></div>
+                              <div className="space-y-2"><Label htmlFor="sindico">Nome do Síndico(a)</Label><Input id="sindico" value={formData.sindico} onChange={(e) => setFormData({ ...formData, sindico: e.target.value })} /></div>
+                              <div className="space-y-2"><Label htmlFor="telefone_sindico">Telefone do Síndico(a)</Label><Input id="telefone_sindico" value={formData.telefone_sindico} onChange={(e) => setFormData({ ...formData, telefone_sindico: e.target.value })} /></div>
+                              <div className="space-y-2 col-span-2"><Label htmlFor="email_sindico">Email do Síndico(a)</Label><Input id="email_sindico" type="email" value={formData.email_sindico} onChange={(e) => setFormData({ ...formData, email_sindico: e.target.value })} /></div>
+                              <div className="space-y-2"><Label htmlFor="valor">Valor Mensal (R$)</Label><Input id="valor" type="number" step="0.01" value={formData.valor_servico} onChange={(e) => setFormData({ ...formData, valor_servico: e.target.value })} /></div>
+                              <div className="space-y-2"><Label htmlFor="vencimento_boleto">Dia do Vencimento <span className="text-red-500">*</span></Label><Select value={formData.vencimento_boleto} onValueChange={(value) => setFormData({ ...formData, vencimento_boleto: value })}><SelectTrigger><SelectValue placeholder="Selecione o dia" /></SelectTrigger><SelectContent>{Array.from({ length: 31 }, (_, i) => i + 1).map(day => (<SelectItem key={day} value={day.toString()}>{day}</SelectItem>))}</SelectContent></Select></div>
                             </div>
                             <Separator/>
                             <div className="space-y-4">
@@ -241,7 +239,6 @@ export function Condominios() {
                                 </RadioGroup>
                                 {formData.transporte_tipo === 'onibus' && (
                                     <div className="space-y-4 pl-2 pt-2 border-l-2 ml-2">
-                                        <Button type="button" variant="outline" size="sm" onClick={addLinhaField}><Plus className="h-4 w-4 mr-2"/>Adicionar Linha</Button>
                                         {linhasDeOnibus.map((onibus, index) => (
                                             <div key={index} className="space-y-3 p-3 bg-muted/50 rounded-lg">
                                                 <div className="flex justify-between items-center"><Label htmlFor={`linha-${index}`} className="font-semibold">Linha de Ônibus {index + 1}</Label><Button type="button" variant="ghost" size="icon" onClick={() => removeLinhaField(index)}><Trash2 className="h-4 w-4 text-red-500" /></Button></div>
@@ -252,6 +249,7 @@ export function Condominios() {
                                                 </RadioGroup>
                                             </div>
                                         ))}
+                                       <div className="pt-2"><Button type="button" variant="outline" size="sm" onClick={addLinhaField}><Plus className="h-4 w-4 mr-2"/>Adicionar Linha</Button></div>
                                     </div>
                                 )}
                             </div>
