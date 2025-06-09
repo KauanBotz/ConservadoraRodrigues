@@ -2,14 +2,26 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+// Estrutura para os detalhes de uma linha de ônibus
+export interface OnibusDetalhe {
+  linha: string;
+  tipo: 'bairro' | 'move';
+}
+
+// Estrutura completa de um Condomínio
 export interface Condominio {
   id: string;
   nome: string;
   endereco: string;
-  valor_servico: number | null;
-  contrato_digital: string | null;
   status: 'Ativo' | 'Inativo';
-  recebe_nota_fiscal: boolean;
+  valor_servico: number | null;
+  cnpj: string | null;
+  sindico: string | null;
+  email_sindico: string | null;
+  telefone_sindico: string | null;
+  vencimento_boleto: number | null;
+  transporte_tipo: string | null;
+  transporte_onibus_detalhes: OnibusDetalhe[] | null;
 }
 
 export function useCondominios() {
@@ -46,7 +58,7 @@ export function useCondominios() {
         .single();
 
       if (error) throw error;
-      await fetchCondominios();
+      await fetchCondominios(); // Garante que a lista seja atualizada
       toast({ title: "Condomínio cadastrado", description: "Condomínio adicionado com sucesso!" });
       return data;
     } catch (error: any) {
