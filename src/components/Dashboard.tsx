@@ -182,14 +182,28 @@ export function Dashboard() {
 }
 
 function DashboardCard({ title, icon, value, subtitle, color }: any) {
+  let borderColor = "";
+  let textColor = "";
+
+  if (color === "primary") {
+    borderColor = "border-l-primary";
+    textColor = "text-primary";
+  } else if (color === "secondary") {
+    borderColor = "border-l-secondary";
+    textColor = "text-secondary";
+  } else if (color === "destructive") {
+    borderColor = "border-l-destructive";
+    textColor = "text-destructive";
+  }
+
   return (
-    <Card className={`hover:shadow-lg transition-shadow border-l-4 border-l-${color}`}>
+    <Card className={`hover:shadow-lg transition-shadow border-l-4 ${borderColor}`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <div className={`h-4 w-4 text-${color}`}>{icon}</div>
+        <div className={`h-4 w-4 ${textColor}`}>{icon}</div>
       </CardHeader>
       <CardContent>
-        <div className={`text-2xl font-bold text-${color}`}>{value}</div>
+        <div className={`text-2xl font-bold ${textColor}`}>{value}</div>
         <p className="text-xs text-muted-foreground">{subtitle}</p>
       </CardContent>
     </Card>
