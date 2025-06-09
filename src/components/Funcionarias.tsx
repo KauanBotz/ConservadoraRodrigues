@@ -57,13 +57,13 @@ export function Funcionarias() {
     nome: '', cpf: '', telefone: '', endereco: '', horas_semanais: '', salario_base: '', valor_passagem: '', passagens_mensais: '', status: 'Ativa',
     rg: '', pis: '', titulo_eleitor: '', data_de_admissao: '', data_de_desligamento: ''
   });
-  const [cpfsFilhos, setCpfsFilhos] = useState<string[]>(['']);
+  const [cpfsFilhos, setCpfsFilhos] = useState<string[]>([]);
 
   useEffect(() => {
     if (isDialogOpen && editingFuncionaria) {
-      setCpfsFilhos(editingFuncionaria.cpfs_filhos || ['']);
+      setCpfsFilhos(editingFuncionaria.cpfs_filhos || []);
     } else if (isDialogOpen && !editingFuncionaria) {
-      setCpfsFilhos(['']);
+      setCpfsFilhos([]);
     }
   }, [isDialogOpen, editingFuncionaria]);
   
@@ -74,12 +74,10 @@ export function Funcionarias() {
   };
   
   const addCpfField = () => setCpfsFilhos([...cpfsFilhos, '']);
+
   const removeCpfField = (index: number) => {
-    if (cpfsFilhos.length > 1) {
-      setCpfsFilhos(cpfsFilhos.filter((_, i) => i !== index));
-    } else {
-        setCpfsFilhos(['']);
-    }
+    const newCpfs = cpfsFilhos.filter((_, i) => i !== index);
+    setCpfsFilhos(newCpfs);
   };
 
 
@@ -220,15 +218,39 @@ export function Funcionarias() {
                 </div>
                 <Separator className="my-6"/>
                 <div className="space-y-4">
-                    <Label className="text-base font-medium">Filhos (menores de 14 anos)</Label>
-                    {cpfsFilhos.map((cpf, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                            <Input placeholder={`CPF do ${index + 1}º filho(a)`} value={cpf} onChange={(e) => handleCpfsChange(index, e.target.value)} />
-                            <Button type="button" variant="ghost" size="icon" onClick={() => removeCpfField(index)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
-                        </div>
-                    ))}
-                    <Button type="button" variant="outline" size="sm" onClick={addCpfField}><Plus className="h-4 w-4 mr-2"/>Adicionar Filho</Button>
+              <div className="flex flex-col gap-2">
+                <Label className="text-base font-medium">Filhos (menores de 14 anos)</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addCpfField}
+                  className="w-fit"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Filho
+                </Button>
+              </div>
+
+              {cpfsFilhos.map((cpf, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Input
+                    placeholder={`CPF do ${index + 1}º filho(a)`}
+                    value={cpf}
+                    onChange={(e) => handleCpfsChange(index, e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeCpfField(index)}
+                  >
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
                 </div>
+              ))}
+            </div>
+
                 {editingFuncionaria && (
                     <>
                     <Separator className="my-6"/>
@@ -239,13 +261,13 @@ export function Funcionarias() {
                                 id="status"
                                 checked={formData.status === 'Ativa'}
                                 onCheckedChange={(checked) => {
-                                    setFormData({ ...formData, status: checked ? 'Ativa' : 'Inativa', data_de_desligamento: checked ? '' : new Date().toISOString().split('T')[0] });
+                                    setFormData({ ...formData, status: checked ? 'Ativa' : 'Inativa' });
                                 }}
                             />
                              <Label htmlFor="status">Funcionária {formData.status}</Label>
                         </div>
                         {formData.status === 'Inativa' && (
-                            <div className="space-y-2 mt-4"><Label htmlFor="data_de_desligamento">Data de Desligamento</Label><Input id="data_de_desligamento" type="date" value={formData.data_de_desligamento} readOnly className="bg-muted" /></div>
+                            <div className="space-y-2 mt-4"><Label htmlFor="data_de_desligamento">Data de Desligamento</Label><Input id="data_de_desligamento" type="date" value={formData.data_de_desligamento} onChange={(e) => setFormData({ ...formData, data_de_desligamento: e.target.value })} /></div>
                         )}
                     </div>
                     </>
