@@ -4,12 +4,12 @@ import { useToast } from '@/hooks/use-toast';
 
 export interface Escala {
   id: string;
-  dia_semana: string; // Correção: de 'dia_da_semana' para 'dia_semana'
+  dia_semana: string; 
   horas_trabalho: number;
   id_condominio: string | null;
   id_funcionaria: string | null;
   funcionaria?: { nome: string };
-  condominio?: { nome: string };
+  condominio?: { nome: string; endereco: string; }; // Adicionado endereço
 }
 
 
@@ -25,7 +25,7 @@ export function useEscalas() {
         .select(`
           *,
           funcionaria:funcionarias(nome),
-          condominio:condominios(nome)
+          condominio:condominios(nome, endereco) 
         `)
         .order('dia_semana', { ascending: true });
 
@@ -50,7 +50,7 @@ export function useEscalas() {
         .select(`
           *,
           funcionaria:funcionarias(nome),
-          condominio:condominios(nome)
+          condominio:condominios(nome, endereco)
         `)
         .single();
 
@@ -81,7 +81,7 @@ export function useEscalas() {
         .select(`
           *,
           funcionaria:funcionarias(nome),
-          condominio:condominios(nome)
+          condominio:condominios(nome, endereco)
         `)
         .single();
 

@@ -1,10 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Building2, Calendar, AlertTriangle, DollarSign, FileText, Loader2 } from "lucide-react";
+import { Users, Building2, Calendar, AlertTriangle, DollarSign, FileText, Loader2, MapPin } from "lucide-react";
 import { useFuncionarias } from "@/hooks/useFuncionarias";
 import { useCondominios } from "@/hooks/useCondominios";
 import { useFaltas } from "@/hooks/useFaltas";
 import { useEscalas } from "@/hooks/useEscalas";
-import { ScrollArea } from "@/components/ui/scroll-area"; // Importa o componente de rolagem
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function Dashboard() {
   const { funcionarias = [], loading: loadingFuncionarias } = useFuncionarias();
@@ -26,7 +26,6 @@ export function Dashboard() {
   const mesAtual = hoje.getMonth();
   const anoAtual = hoje.getFullYear();
   
-  // Pega o nome do mês atual para exibir no título do card
   const nomeMesAtual = hoje.toLocaleString('pt-BR', { month: 'long' });
   const mesCapitalizado = nomeMesAtual.charAt(0).toUpperCase() + nomeMesAtual.slice(1);
 
@@ -101,15 +100,12 @@ export function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-destructive" />
-              {/* Título dinâmico com o nome do mês */}
               Faltas de {mesCapitalizado}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {/* Adiciona uma área de rolagem caso a lista seja longa */}
             <ScrollArea className="h-[200px] pr-4">
               <div className="space-y-4">
-                {/* Remove o .slice(0, 3) para mostrar todas as faltas */}
                 {faltasDoMes.length > 0 ? (
                   faltasDoMes.map((falta, i) => (
                     <div key={i} className="flex items-center justify-between p-3 bg-muted rounded-lg">
@@ -140,23 +136,33 @@ export function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {escalasHoje.length > 0 ? (
-                escalasHoje.map((escala, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                    <div>
-                      <p className="font-medium">{escala.condominio?.nome}</p>
-                      <p className="text-sm text-muted-foreground">{escala.funcionaria?.nome}</p>
+            <ScrollArea className="h-[240px] pr-4">
+                <div className="space-y-4">
+                {escalasHoje.length > 0 ? (
+                    escalasHoje.map((escala) => (
+                    <div key={escala.id} className="flex items-start justify-between p-3 bg-muted rounded-lg gap-4">
+                        <div className="flex-1 space-y-1">
+                        <p className="font-bold text-foreground">{escala.condominio?.nome}</p>
+                        <div className="flex items-center text-sm text-muted-foreground">
+                            <MapPin className="h-4 w-4 mr-2 shrink-0" />
+                            <span>{escala.condominio?.endereco || 'Endereço não informado'}</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground pt-1">
+                            Funcionária: <span className="font-medium text-foreground">{escala.funcionaria?.nome || 'N/A'}</span>
+                        </p>
+                        </div>
+                        <div className="flex flex-col items-end">
+                            <span className="text-lg font-bold text-primary whitespace-nowrap">
+                            {escala.horas_trabalho}h
+                            </span>
+                        </div>
                     </div>
-                    <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded">
-                      {escala.dia_da_semana}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">Nenhuma escala para hoje.</p>
-              )}
-            </div>
+                    ))
+                ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">Nenhuma escala para hoje.</p>
+                )}
+                </div>
+            </ScrollArea>
           </CardContent>
         </Card>
       </div>
