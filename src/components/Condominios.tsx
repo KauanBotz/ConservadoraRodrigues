@@ -14,6 +14,7 @@ import { useCondominios, type Condominio, type OnibusDetalhe } from "@/hooks/use
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 
+// Funções de formatação para exibição
 const formatPhoneNumber = (phone: string | null) => {
     if (!phone) return 'Não informado';
     const cleaned = ('' + phone).replace(/\D/g, '');
@@ -39,21 +40,22 @@ const formatCNPJ = (cnpj: string | null) => {
     return cnpj;
 }
 
-// Componente para exibir as informações de transporte de forma consistente
-const TransporteInfo = ({condominio}: {condominio: Condominio | null}) => {
-    if(!condominio) return null;
-    const { transporte_tipo, transporte_onibus_detalhes } = condominio;
+// Componente para exibir informações de transporte de forma consistente
+const TransporteInfo = ({ condominio }: { condominio: Condominio | null }) => {
+    if (!condominio || !condominio.transporte_tipo || condominio.transporte_tipo === 'nenhum') {
+        return null; // Não exibe nada se for 'nenhum'
+    }
 
-    if (transporte_tipo === 'veiculo_empresa') {
+    if (condominio.transporte_tipo === 'veiculo_empresa') {
         return <div className="flex items-center gap-2 text-sm"><Truck className="w-4 h-4 text-muted-foreground" /><span>Veículo da Empresa</span></div>;
     }
 
-    if (transporte_tipo === 'onibus' && transporte_onibus_detalhes && transporte_onibus_detalhes.length > 0) {
+    if (condominio.transporte_tipo === 'onibus' && condominio.transporte_onibus_detalhes && condominio.transporte_onibus_detalhes.length > 0) {
         return (
             <div className="flex items-start gap-2 text-sm">
                 <Bus className="w-4 h-4 text-muted-foreground mt-1" />
                 <div className="flex flex-wrap gap-1">
-                    {transporte_onibus_detalhes.map((onibus, i) => (
+                    {condominio.transporte_onibus_detalhes.map((onibus, i) => (
                         <Badge key={i} variant="outline" className={`font-normal ${onibus.tipo === 'move' ? 'bg-green-100 text-green-800 border-green-300' : 'bg-yellow-100 text-yellow-800 border-yellow-300'}`}>
                             {onibus.linha}
                         </Badge>
@@ -76,7 +78,6 @@ export function Condominios() {
   const [formData, setFormData] = useState({
     nome: '', endereco: '', valor_servico: '', status: 'Ativo' as 'Ativo' | 'Inativo', sindico: '',
     email_sindico: '', telefone_sindico: '', vencimento_boleto: '', cnpj: '', transporte_tipo: 'nenhum',
-    recebe_nota_fiscal: false
   });
   const [linhasDeOnibus, setLinhasDeOnibus] = useState<OnibusDetalhe[]>([]);
 
@@ -95,7 +96,9 @@ export function Condominios() {
   }
 
   const addLinhaField = () => setLinhasDeOnibus([...linhasDeOnibus, { linha: '', tipo: 'bairro' }]);
-  const removeLinhaField = (index: number) => setLinhasDeOnibus(linhasDeOnibus.filter((_, i) => i !== index));
+  const removeLinhaField = (index: number) => {
+      setLinhasDeOnibus(linhasDeOnibus.filter((_, i) => i !== index));
+  };
 
   const openDialog = (condominio: Condominio | null = null, mode: 'edit' | 'details' = 'edit') => {
     if (mode === 'details' && condominio) {
@@ -116,13 +119,11 @@ export function Condominios() {
               vencimento_boleto: condominio.vencimento_boleto?.toString() || '',
               cnpj: condominio.cnpj || '',
               transporte_tipo: condominio.transporte_tipo || 'nenhum',
-              recebe_nota_fiscal: condominio.recebe_nota_fiscal || false,
             });
         } else {
             setFormData({
               nome: '', endereco: '', valor_servico: '', status: 'Ativo', sindico: '',
               email_sindico: '', telefone_sindico: '', vencimento_boleto: '', cnpj: '', transporte_tipo: 'nenhum',
-              recebe_nota_fiscal: false,
             });
         }
     }
@@ -175,10 +176,7 @@ export function Condominios() {
                         <CardTitle className="text-lg text-foreground">{condominio.nome}</CardTitle>
                         <p className="text-sm text-muted-foreground">{formatCNPJ(condominio.cnpj)}</p>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                        <Badge className={`text-xs px-2 py-1 rounded ${condominio.status === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>{condominio.status}</Badge>
-                        {condominio.recebe_nota_fiscal && (<Badge variant="outline" className="text-xs">Com NF</Badge>)}
-                    </div>
+                    <Badge className={`text-xs px-2 py-1 rounded ${condominio.status === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>{condominio.status}</Badge>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -195,63 +193,81 @@ export function Condominios() {
         ))}
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-3xl flex flex-col h-auto md:h-[90vh]">
-              <DialogHeader><DialogTitle>{editingCondominio ? 'Editar Condomínio' : detalhesCondominio ? 'Detalhes do Condomínio' : 'Novo Condomínio'}</DialogTitle></DialogHeader>
-              {detalhesCondominio ? (
-                  <div className="space-y-6 pt-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-6">
-                          <div className="flex items-center gap-3"><Building2 className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Nome</p><p className="font-medium">{detalhesCondominio.nome}</p></div></div>
-                          <div className="flex items-center gap-3"><FileCheck className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">CNPJ</p><p className="font-medium">{formatCNPJ(detalhesCondominio.cnpj)}</p></div></div>
-                          <div className="flex items-center gap-3"><UserCircle className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Síndico(a)</p><p className="font-medium">{detalhesCondominio.sindico || 'Não informado'}</p></div></div>
-                          <div className="flex items-center gap-3 col-span-full"><MapPin className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Endereço</p><p className="font-medium">{detalhesCondominio.endereco}</p></div></div>
-                          <Separator className="col-span-full"/>
-                          <div className="flex items-center gap-3"><Phone className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Telefone Síndico</p><p className="font-medium">{formatPhoneNumber(detalhesCondominio.telefone_sindico)}</p></div></div>
-                          <div className="flex items-center gap-3 col-span-2"><Mail className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Email Síndico</p><p className="font-medium">{detalhesCondominio.email_sindico || 'Não informado'}</p></div></div>
-                          <Separator className="col-span-full"/>
-                          <div className="flex items-center gap-3"><DollarSign className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Valor do Serviço</p><p className="font-medium">R$ {detalhesCondominio.valor_servico?.toFixed(2) || '0.00'}</p></div></div>
-                          <div className="flex items-center gap-3"><CalendarDays className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Vencimento</p><p className="font-medium">Todo dia {detalhesCondominio.vencimento_boleto || 'N/A'}</p></div></div>
-                          <div className="flex items-center gap-3"><FileCheck className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Recebe Nota Fiscal?</p><p className="font-medium">{detalhesCondominio.recebe_nota_fiscal ? 'Sim' : 'Não'}</p></div></div>
-                          <div className="flex items-center gap-3">
-                              {detalhesCondominio.status === 'Ativo' ? <ShieldCheck className="h-5 w-5 text-green-600"/> : <ShieldX className="h-5 w-5 text-red-600" />}
-                              <div><p className="text-xs text-muted-foreground">Situação</p><Badge variant="outline" className={detalhesCondominio.status === 'Ativo' ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}>{detalhesCondominio.status}</Badge></div>
-                          </div>
-                          <div className="col-span-full"><TransporteInfo condominio={detalhesCondominio}/></div>
-                      </div>
-                      <DialogFooter className="pt-4"><Button variant="outline" onClick={closeDialog}>Fechar</Button></DialogFooter>
-                  </div>
-              ) : (
-                  <>
-                  <ScrollArea className="flex-grow pr-6 -mr-6">
-                      <form id="condo-form" onSubmit={handleSubmit} className="space-y-6">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2"><Label htmlFor="nome">Nome</Label><Input id="nome" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} required /></div>
-                            <div className="space-y-2"><Label htmlFor="cnpj">CNPJ</Label><Input id="cnpj" value={formData.cnpj} onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })} /></div>
-                            <div className="space-y-2 col-span-2"><Label htmlFor="endereco">Endereço</Label><Input id="endereco" value={formData.endereco} onChange={(e) => setFormData({ ...formData, endereco: e.target.value })} required /></div>
-                            <div className="space-y-2"><Label htmlFor="sindico">Síndico(a)</Label><Input id="sindico" value={formData.sindico} onChange={(e) => setFormData({ ...formData, sindico: e.target.value })} /></div>
-                            <div className="space-y-2"><Label htmlFor="telefone_sindico">Telefone do Síndico</Label><Input id="telefone_sindico" value={formData.telefone_sindico} onChange={(e) => setFormData({ ...formData, telefone_sindico: e.target.value })} /></div>
-                            <div className="space-y-2 col-span-2"><Label htmlFor="email_sindico">Email do Síndico</Label><Input id="email_sindico" type="email" value={formData.email_sindico} onChange={(e) => setFormData({ ...formData, email_sindico: e.target.value })} /></div>
-                            <div className="space-y-2"><Label htmlFor="valor">Valor Mensal (R$)</Label><Input id="valor" type="number" step="0.01" value={formData.valor_servico} onChange={(e) => setFormData({ ...formData, valor_servico: e.target.value })} /></div>
-                            <div className="space-y-2"><Label htmlFor="vencimento_boleto">Dia do Vencimento <span className="text-red-500">*</span></Label><Select value={formData.vencimento_boleto} onValueChange={(value) => setFormData({ ...formData, vencimento_boleto: value })}><SelectTrigger><SelectValue placeholder="Selecione o dia" /></SelectTrigger><SelectContent>{Array.from({ length: 31 }, (_, i) => i + 1).map(day => (<SelectItem key={day} value={day.toString()}>{day}</SelectItem>))}</SelectContent></Select></div>
-                          </div>
-                          <Separator/>
-                          <div className="flex items-center space-x-2">
-                            <Switch id="recebe_nota_fiscal" checked={formData.recebe_nota_fiscal} onCheckedChange={(checked) => setFormData({ ...formData, recebe_nota_fiscal: checked })} />
-                            <Label htmlFor="recebe_nota_fiscal">Recebe Nota Fiscal</Label>
-                          </div>
-                          <Separator />
-                          <div className="space-y-2">
-                              <Label className="text-base font-medium">Controle Administrativo</Label>
-                              <div className="flex items-center space-x-2 pt-2">
-                                  <Switch id="status" checked={formData.status === 'Ativo'} onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? 'Ativo' : 'Inativo' })} />
-                                  <Label htmlFor="status">Condomínio {formData.status}</Label>
-                              </div>
-                          </div>
-                      </form>
-                  </ScrollArea>
-                  <DialogFooter className="pt-4"><Button type="button" variant="outline" onClick={closeDialog}>Cancelar</Button><Button type="submit" form="condo-form">{editingCondominio ? 'Salvar Alterações' : 'Cadastrar'}</Button></DialogFooter>
-                  </>
-              )}
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogContent className="max-w-3xl flex flex-col h-auto md:h-[90vh]">
+                <DialogHeader><DialogTitle>{editingCondominio ? 'Editar Condomínio' : detalhesCondominio ? 'Detalhes do Condomínio' : 'Novo Condomínio'}</DialogTitle></DialogHeader>
+                {detalhesCondominio ? (
+                    <div className="space-y-6 pt-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-6">
+                            <div className="flex items-center gap-3"><Building2 className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Nome</p><p className="font-medium">{detalhesCondominio.nome}</p></div></div>
+                            <div className="flex items-center gap-3"><FileCheck className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">CNPJ</p><p className="font-medium">{formatCNPJ(detalhesCondominio.cnpj)}</p></div></div>
+                            <div className="flex items-center gap-3"><UserCircle className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Síndico(a)</p><p className="font-medium">{detalhesCondominio.sindico || 'Não informado'}</p></div></div>
+                            <div className="flex items-center gap-3 col-span-full"><MapPin className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Endereço</p><p className="font-medium">{detalhesCondominio.endereco}</p></div></div>
+                            <Separator className="col-span-full"/>
+                            <div className="flex items-center gap-3 col-span-2"><Mail className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Email Síndico</p><p className="font-medium">{detalhesCondominio.email_sindico || 'Não informado'}</p></div></div>
+                            <div className="flex items-center gap-3"><Phone className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Telefone Síndico</p><p className="font-medium">{formatPhoneNumber(detalhesCondominio.telefone_sindico)}</p></div></div>
+                            <Separator className="col-span-full"/>
+                            <div className="flex items-center gap-3"><DollarSign className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Valor do Serviço</p><p className="font-medium">R$ {detalhesCondominio.valor_servico?.toFixed(2) || '0.00'}</p></div></div>
+                            <div className="flex items-center gap-3"><CalendarDays className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Vencimento</p><p className="font-medium">Todo dia {detalhesCondominio.vencimento_boleto || 'N/A'}</p></div></div>
+                            <div className="flex items-center gap-3">
+                                {detalhesCondominio.status === 'Ativo' ? <ShieldCheck className="h-5 w-5 text-green-600"/> : <ShieldX className="h-5 w-5 text-red-600" />}
+                                <div><p className="text-xs text-muted-foreground">Situação</p><Badge variant="outline" className={detalhesCondominio.status === 'Ativo' ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}>{detalhesCondominio.status}</Badge></div>
+                            </div>
+                            <div className="col-span-full"><TransporteInfo condominio={detalhesCondominio}/></div>
+                        </div>
+                        <DialogFooter className="pt-4"><Button variant="outline" onClick={closeDialog}>Fechar</Button></DialogFooter>
+                    </div>
+                ) : (
+                    <>
+                    <ScrollArea className="flex-grow pr-6 -mr-6">
+                        <form id="condo-form" onSubmit={handleSubmit} className="space-y-6">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2"><Label htmlFor="nome">Nome do Condomínio</Label><Input id="nome" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} required /></div>
+                                <div className="space-y-2"><Label htmlFor="cnpj">CNPJ</Label><Input id="cnpj" value={formData.cnpj} onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })} /></div>
+                                <div className="space-y-2 col-span-2"><Label htmlFor="endereco">Endereço Completo</Label><Input id="endereco" value={formData.endereco} onChange={(e) => setFormData({ ...formData, endereco: e.target.value })} required /></div>
+                                <div className="space-y-2"><Label htmlFor="sindico">Nome do Síndico(a)</Label><Input id="sindico" value={formData.sindico} onChange={(e) => setFormData({ ...formData, sindico: e.target.value })} /></div>
+                                <div className="space-y-2"><Label htmlFor="telefone_sindico">Telefone do Síndico(a)</Label><Input id="telefone_sindico" value={formData.telefone_sindico} onChange={(e) => setFormData({ ...formData, telefone_sindico: e.target.value })} /></div>
+                                <div className="space-y-2 col-span-2"><Label htmlFor="email_sindico">Email do Síndico(a)</Label><Input id="email_sindico" type="email" value={formData.email_sindico} onChange={(e) => setFormData({ ...formData, email_sindico: e.target.value })} /></div>
+                                <div className="space-y-2"><Label htmlFor="valor">Valor Mensal (R$)</Label><Input id="valor" type="number" step="0.01" value={formData.valor_servico} onChange={(e) => setFormData({ ...formData, valor_servico: e.target.value })} /></div>
+                                <div className="space-y-2"><Label htmlFor="vencimento_boleto">Dia do Vencimento <span className="text-red-500">*</span></Label><Select value={formData.vencimento_boleto} onValueChange={(value) => setFormData({ ...formData, vencimento_boleto: value })}><SelectTrigger><SelectValue placeholder="Selecione o dia" /></SelectTrigger><SelectContent>{Array.from({ length: 31 }, (_, i) => i + 1).map(day => (<SelectItem key={day} value={day.toString()}>{day}</SelectItem>))}</SelectContent></Select></div>
+                            </div>
+                            <Separator/>
+                            <div className="space-y-4">
+                                <Label className="text-base font-medium">Transporte</Label>
+                                <RadioGroup value={formData.transporte_tipo} onValueChange={(value) => setFormData({...formData, transporte_tipo: value})} className="flex space-x-4 pt-2">
+                                    <div className="flex items-center space-x-2"><RadioGroupItem value="nenhum" id="nenhum"/><Label htmlFor="nenhum">Nenhum</Label></div>
+                                    <div className="flex items-center space-x-2"><RadioGroupItem value="onibus" id="onibus"/><Label htmlFor="onibus">Ônibus</Label></div>
+                                    <div className="flex items-center space-x-2"><RadioGroupItem value="veiculo_empresa" id="veiculo"/><Label htmlFor="veiculo">Veículo da Empresa</Label></div>
+                                </RadioGroup>
+                                {formData.transporte_tipo === 'onibus' && (
+                                    <div className="space-y-4 pl-2 pt-2 border-l-2 ml-2">
+                                        <Button type="button" variant="outline" size="sm" onClick={addLinhaField}><Plus className="h-4 w-4 mr-2"/>Adicionar Linha</Button>
+                                        {linhasDeOnibus.map((onibus, index) => (
+                                            <div key={index} className="space-y-3 p-3 bg-muted/50 rounded-lg">
+                                                <div className="flex justify-between items-center"><Label htmlFor={`linha-${index}`} className="font-semibold">Linha de Ônibus {index + 1}</Label><Button type="button" variant="ghost" size="icon" onClick={() => removeLinhaField(index)}><Trash2 className="h-4 w-4 text-red-500" /></Button></div>
+                                                <Input id={`linha-${index}`} value={onibus.linha} onChange={(e) => handleLinhaChange(index, 'linha', e.target.value)} placeholder="Ex: 619, 617, 50" />
+                                                <RadioGroup value={onibus.tipo} onValueChange={(value) => handleLinhaChange(index, 'tipo', value)} className="flex space-x-4 pt-2">
+                                                    <div className="flex items-center space-x-2"><RadioGroupItem value="bairro" id={`bairro-${index}`}/><Label htmlFor={`bairro-${index}`}>Bairro</Label></div>
+                                                    <div className="flex items-center space-x-2"><RadioGroupItem value="move" id={`move-${index}`}/><Label htmlFor={`move-${index}`}>MOVE</Label></div>
+                                                </RadioGroup>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            <Separator/>
+                            <div className="space-y-2">
+                                <Label className="text-base font-medium">Controle Administrativo</Label>
+                                <div className="flex items-center space-x-2 pt-2">
+                                    <Switch id="status" checked={formData.status === 'Ativo'} onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? 'Ativo' : 'Inativo' })} />
+                                    <Label htmlFor="status">Condomínio {formData.status}</Label>
+                                </div>
+                            </div>
+                        </form>
+                    </ScrollArea>
+                    <DialogFooter className="pt-4"><Button type="button" variant="outline" onClick={closeDialog}>Cancelar</Button><Button type="submit" form="condo-form">{editingCondominio ? 'Salvar Alterações' : 'Cadastrar'}</Button></DialogFooter>
+                    </>
+                )}
             </DialogContent>
         </Dialog>
     </div>
