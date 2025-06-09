@@ -4,12 +4,17 @@ import { useToast } from '@/hooks/use-toast';
 
 export interface Escala {
   id: string;
-  dia_semana: string; 
+  dia_semana: string;
   horas_trabalho: number;
   id_condominio: string | null;
   id_funcionaria: string | null;
   funcionaria?: { nome: string };
-  condominio?: { nome: string; endereco: string; }; // Adicionado endereço
+  condominio?: {
+    nome: string;
+    endereco: string;
+    transporte_tipo?: string | null;
+    transporte_onibus_detalhes?: { linha: string; tipo: 'bairro' | 'move' }[] | null;
+  };
 }
 
 
@@ -25,7 +30,7 @@ export function useEscalas() {
         .select(`
           *,
           funcionaria:funcionarias(nome),
-          condominio:condominios(nome, endereco) 
+          condominio:condominios(nome, endereco, transporte_tipo, transporte_onibus_detalhes) 
         `)
         .order('dia_semana', { ascending: true });
 
@@ -50,7 +55,7 @@ export function useEscalas() {
         .select(`
           *,
           funcionaria:funcionarias(nome),
-          condominio:condominios(nome, endereco)
+          condominio:condominios(nome, endereco, transporte_tipo, transporte_onibus_detalhes)
         `)
         .single();
 
@@ -75,15 +80,13 @@ export function useEscalas() {
   const updateEscala = async (id: string, escala: Partial<Escala>) => {
     try {
       const { data, error } = await supabase
-        .from('escalas')
-        .update(escala)
-        .eq('id', id)
-        .select(`
-          *,
-          funcionaria:funcionarias(nome),
-          condominio:condominios(nome, endereco)
-        `)
-        .single();
+      .from('escalas')
+      .select(`
+        *,
+        funcionaria:funcionarias(nome),
+        condominio:condominios(nome, endereco, transporte_tipo, transporte_onibus_detalhes)
+      `)      
+      .order('dia_semana', { ascending: true });    
 
       if (error) throw error;
 

@@ -9,13 +9,13 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Building2, Plus, Edit, Eye, MapPin, DollarSign, FileCheck, Loader2, Search, UserCircle, Mail, Phone, CalendarDays, Bus, Truck, Trash2 } from "lucide-react";
+import { Building2, Plus, Edit, Eye, MapPin, DollarSign, FileCheck, Loader2, Search, UserCircle, Mail, Phone, CalendarDays, Bus, Truck, Trash2, ShieldCheck, ShieldX } from "lucide-react";
 import { useCondominios, type Condominio, type OnibusDetalhe } from "@/hooks/useCondominios";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 
 const formatPhoneNumber = (phone: string | null) => {
-    if (!phone) return 'Telefone não informado';
+    if (!phone) return 'Não informado';
     const cleaned = ('' + phone).replace(/\D/g, '');
     if (cleaned.length === 11) {
         const match = cleaned.match(/^(\d{2})(\d{5})(\d{4})$/);
@@ -37,6 +37,30 @@ const formatCNPJ = (cnpj: string | null) => {
         return `${match[1]}.${match[2]}.${match[3]}/${match[4]}-${match[5]}`;
     }
     return cnpj;
+}
+
+const TransporteInfo = ({condominio}: {condominio: Condominio}) => {
+    if (condominio.transporte_tipo === 'veiculo_empresa') {
+        return <div className="flex items-center gap-3"><Truck className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Transporte</p><p className="font-medium">Veículo da Empresa</p></div></div>;
+    }
+    if (condominio.transporte_tipo === 'onibus' && condominio.transporte_onibus_detalhes && condominio.transporte_onibus_detalhes.length > 0) {
+        return (
+            <div className="flex items-start gap-3 col-span-full">
+                <Bus className="h-5 w-5 text-muted-foreground mt-1" />
+                <div>
+                    <p className="text-xs text-muted-foreground">Linhas de Ônibus</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                        {condominio.transporte_onibus_detalhes?.map((onibus, i) => (
+                            <Badge key={i} variant="outline" className={`font-normal ${onibus.tipo === 'move' ? 'bg-green-100 text-green-800 border-green-300' : 'bg-yellow-100 text-yellow-800 border-yellow-300'}`}>
+                                {onibus.linha}
+                            </Badge>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        )
+    }
+    return <div className="flex items-center gap-3"><Truck className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Transporte</p><p className="font-medium">Nenhum</p></div></div>;
 }
 
 export function Condominios() {
@@ -64,14 +88,14 @@ export function Condominios() {
   useEffect(() => {
     if(isDialogOpen && editingCondominio) {
       setLinhasDeOnibus(editingCondominio.transporte_onibus_detalhes || []);
-    } else {
+    } else if (isDialogOpen && !editingCondominio) {
       setLinhasDeOnibus([]);
     }
   }, [isDialogOpen, editingCondominio])
 
   const handleLinhaChange = (index: number, field: 'linha' | 'tipo', value: string) => {
     const novasLinhas = [...linhasDeOnibus];
-    novasLinhas[index] = {...novasLinhas[index], [field]: value};
+    novasLinhas[index] = {...novasLinhas[index], [field]: value as 'bairro' | 'move'};
     setLinhasDeOnibus(novasLinhas);
   }
 
@@ -157,24 +181,41 @@ export function Condominios() {
         <div><h1 className="text-3xl font-bold text-foreground flex items-center gap-3"><Building2 className="h-8 w-8 text-primary" />Condomínios</h1><p className="text-muted-foreground">Gerencie os condomínios atendidos</p></div>
         <Dialog open={isDialogOpen} onOpenChange={(open) => open ? setIsDialogOpen(true) : closeDialog()}>
           <DialogTrigger asChild><Button onClick={handleAddNew}><Plus className="w-4 h-4 mr-2" />Novo Condomínio</Button></DialogTrigger>
-          <DialogContent className="max-w-3xl flex flex-col h-[90vh]">
+          <DialogContent
+            className={`max-w-3xl flex flex-col ${
+              detalhesCondominio ? 'md:max-h-[58vh] overflow-y-auto' : 'md:h-[90vh]'
+            }`}
+          >
             <DialogHeader><DialogTitle>{editingCondominio ? 'Editar Condomínio' : detalhesCondominio ? 'Detalhes do Condomínio' : 'Novo Condomínio'}</DialogTitle></DialogHeader>
             {detalhesCondominio ? (
                  <div className="space-y-6 pt-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-6">
                         <div className="flex items-center gap-3"><Building2 className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Nome</p><p className="font-medium">{detalhesCondominio.nome}</p></div></div>
                         <div className="flex items-center gap-3"><FileCheck className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">CNPJ</p><p className="font-medium">{formatCNPJ(detalhesCondominio.cnpj)}</p></div></div>
-                        <div className="flex items-center gap-3 col-span-2"><MapPin className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Endereço</p><p className="font-medium">{detalhesCondominio.endereco}</p></div></div>
+                        <div className="flex items-center gap-3"><MapPin className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Endereço</p><p className="font-medium">{detalhesCondominio.endereco}</p></div></div>
+                        <Separator className="col-span-full"/>
                         <div className="flex items-center gap-3"><UserCircle className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Síndico(a)</p><p className="font-medium">{detalhesCondominio.sindico || 'Não informado'}</p></div></div>
                         <div className="flex items-center gap-3"><Phone className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Telefone Síndico(a)</p><p className="font-medium">{formatPhoneNumber(detalhesCondominio.telefone_sindico)}</p></div></div>
-                        <div className="flex items-center gap-3 col-span-2"><Mail className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Email Síndico(a)</p><p className="font-medium">{detalhesCondominio.email_sindico || 'Não informado'}</p></div></div>
+                        <div className="flex items-center gap-3"><Mail className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Email Síndico(a)</p><p className="font-medium">{detalhesCondominio.email_sindico || 'Não informado'}</p></div></div>
+                        <Separator className="col-span-full"/>
+                        <div className="flex items-center gap-3"><DollarSign className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Valor do Serviço</p><p className="font-medium">R$ {detalhesCondominio.valor_servico?.toFixed(2) || '0.00'}</p></div></div>
+                        <div className="flex items-center gap-3"><CalendarDays className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Vencimento</p><p className="font-medium">Todo dia {detalhesCondominio.vencimento_boleto || 'N/A'}</p></div></div>
+                        <div className="flex items-center gap-3">
+                            {detalhesCondominio.status === 'Ativo' ? <ShieldCheck className="h-5 w-5 text-green-600"/> : <ShieldX className="h-5 w-5 text-red-600" />}
+                            <div><p className="text-xs text-muted-foreground">Situação</p><Badge variant="outline" className={detalhesCondominio.status === 'Ativo' ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}>{detalhesCondominio.status}</Badge></div>
+                        </div>
+                        <TransporteInfo condominio={detalhesCondominio}/>
                     </div>
-                     <div className="pt-4 flex justify-end">
-                        <Button variant="outline" onClick={closeDialog}>Fechar</Button>
-                    </div>
+                    <DialogFooter className="pt-2">
+                        <div className="flex-1" />
+                        <Button variant="outline" size="sm" className="h-8 px-4" onClick={closeDialog}>
+                            Fechar
+                        </Button>
+                    </DialogFooter>
+
                 </div>
             ) : (
-                <ScrollArea className="flex-grow pr-6">
+                <ScrollArea className="flex-grow pr-6 -mr-6">
                 <form id="condo-form" onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2"><Label htmlFor="nome">Nome do Condomínio</Label><Input id="nome" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} required /></div>
@@ -196,6 +237,7 @@ export function Condominios() {
                         </RadioGroup>
                         {formData.transporte_tipo === 'onibus' && (
                             <div className="space-y-4 pl-2 pt-4 border-l-2 ml-2">
+                                <Button type="button" variant="outline" size="sm" onClick={addLinhaField}><Plus className="h-4 w-4 mr-2"/>Adicionar Linha de Ônibus</Button>
                                 {linhasDeOnibus.length > 0 && linhasDeOnibus.map((onibus, index) => (
                                     <div key={index} className="space-y-3 p-3 bg-muted/50 rounded-lg">
                                         <div className="flex justify-between items-center">
@@ -209,9 +251,13 @@ export function Condominios() {
                                         </RadioGroup>
                                     </div>
                                 ))}
-                               <div className="pt-2"><Button type="button" variant="outline" size="sm" onClick={addLinhaField}><Plus className="h-4 w-4 mr-2"/>Adicionar Linha de Ônibus</Button></div>
                             </div>
                         )}
+                    </div>
+                    <Separator className="my-6" />
+                    <div className="flex items-center space-x-2 pt-2">
+                        <Switch id="status" checked={formData.status === 'Ativo'} onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? 'Ativo' : 'Inativo' })} />
+                        <Label htmlFor="status">Condomínio {formData.status}</Label>
                     </div>
                 </form>
                 </ScrollArea>
@@ -238,19 +284,7 @@ export function Condominios() {
                 <CardContent className="space-y-4">
                     <div className="space-y-3">
                         <div className="flex items-center gap-2 text-sm"><UserCircle className="w-4 h-4 text-muted-foreground" /><span>{condominio.sindico || 'Síndico não informado'}</span></div>
-                        {condominio.transporte_tipo === 'veiculo_empresa' && (<div className="flex items-center gap-2 text-sm"><Truck className="w-4 h-4 text-muted-foreground" /><span>Veículo da Empresa</span></div>)}
-                        {condominio.transporte_tipo === 'onibus' && (
-                            <div className="flex items-start gap-2 text-sm">
-                                <Bus className="w-4 h-4 text-muted-foreground mt-1" />
-                                <div className="flex flex-wrap gap-1">
-                                    {condominio.transporte_onibus_detalhes?.map((onibus, i) => (
-                                        <Badge key={i} variant="outline" className={`font-normal ${onibus.tipo === 'move' ? 'bg-green-100 text-green-800 border-green-300' : 'bg-yellow-100 text-yellow-800 border-yellow-300'}`}>
-                                            {onibus.linha}
-                                        </Badge>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                        <TransporteInfo condominio={condominio} />
                     </div>
                     <div className="flex gap-2 pt-2">
                         <Button variant="outline" size="sm" onClick={() => handleEdit(condominio)} className="flex-1"><Edit className="w-3 h-3 mr-1" />Editar</Button>

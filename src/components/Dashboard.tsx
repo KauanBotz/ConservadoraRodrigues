@@ -129,42 +129,53 @@ export function Dashboard() {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-primary" />
-              Escalas de Hoje ({diaSemanaAtual.charAt(0).toUpperCase() + diaSemanaAtual.slice(1)})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[240px] pr-4">
-                <div className="space-y-4">
-                {escalasHoje.length > 0 ? (
-                    escalasHoje.map((escala) => (
-                    <div key={escala.id} className="flex items-start justify-between p-3 bg-muted rounded-lg gap-4">
-                        <div className="flex-1 space-y-1">
-                        <p className="font-bold text-foreground">{escala.condominio?.nome}</p>
-                        <div className="flex items-center text-sm text-muted-foreground">
-                            <MapPin className="h-4 w-4 mr-2 shrink-0" />
-                            <span>{escala.condominio?.endereco || 'Endereço não informado'}</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground pt-1">
-                            Funcionária: <span className="font-medium text-foreground">{escala.funcionaria?.nome || 'N/A'}</span>
-                        </p>
-                        </div>
-                        <div className="flex flex-col items-end">
-                            <span className="text-lg font-bold text-primary whitespace-nowrap">
-                            {escala.horas_trabalho}h
-                            </span>
-                        </div>
-                    </div>
-                    ))
-                ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4">Nenhuma escala para hoje.</p>
-                )}
+  <CardHeader>
+    <CardTitle className="flex items-center gap-2">
+      <Calendar className="h-5 w-5 text-primary" />
+      Escalas de Hoje ({diaSemanaAtual.charAt(0).toUpperCase() + diaSemanaAtual.slice(1)})
+    </CardTitle>
+  </CardHeader>
+  <CardContent>
+    <ScrollArea className="h-[240px] pr-4">
+      <div className="space-y-4">
+        {escalasHoje.length > 0 ? (
+          escalasHoje.map((escala) => (
+            <div key={escala.id} className="flex items-start justify-between p-3 bg-muted rounded-lg gap-4">
+              <div className="flex-1 space-y-1">
+                <p className="font-bold text-foreground">{escala.condominio?.nome}</p>
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <MapPin className="h-4 w-4 mr-2 shrink-0" />
+                  <span>{escala.condominio?.endereco || 'Endereço não informado'}</span>
                 </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+                <p className="text-sm text-muted-foreground pt-1">
+                  Funcionária: <span className="font-medium text-foreground">{escala.funcionaria?.nome || 'N/A'}</span>
+                </p>
+                <p className="text-sm text-muted-foreground pt-1">
+                  Transporte:{" "}
+                  <span className="font-medium text-foreground">
+                  {escala.condominio?.transporte_tipo === "onibus"
+                    ? `Ônibus: ${escala.condominio?.transporte_onibus_detalhes?.map(d => `${d.linha.toUpperCase()} (${d.tipo.charAt(0).toUpperCase() + d.tipo.slice(1)})`).join(', ')}`
+                    : escala.condominio?.transporte_tipo === "veiculo_empresa"
+                    ? "Veículo da Empresa"
+                    : "Não informado"}
+                </span>
+                </p>
+              </div>
+              <div className="flex flex-col items-end">
+                <span className="text-lg font-bold text-primary whitespace-nowrap">
+                  {escala.horas_trabalho}h
+                </span>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-4">Nenhuma escala para hoje.</p>
+        )}
+      </div>
+    </ScrollArea>
+  </CardContent>
+</Card>
+
       </div>
     </div>
   );
