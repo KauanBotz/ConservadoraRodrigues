@@ -60,11 +60,11 @@ interface AppSidebarProps {
 export function AppSidebar({ activeSection, onSectionChange }: AppSidebarProps) {
   return (
     <Sidebar className="border-r border-sidebar-border">
-      <SidebarHeader className="p-6">
-          <div>
-            <h2 className="text-lg font-bold text-sidebar-foreground">CONSERVADORA</h2>
-            <p className="text-sm text-sidebar-foreground/70">RODRIGUES</p>
-          </div>
+      <SidebarHeader className="p-5">
+        <div className="leading-none">
+          <h2 className="text-lg font-bold" style={{ color: '#0e2f1f' }}>CONSERVADORA</h2>
+          <p className="text-base font-semibold" style={{ color: '#fbbd23' }}>RODRIGUES</p>
+        </div>
       </SidebarHeader>
       
       <SidebarContent>

@@ -14,6 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Building2, LogOut } from "lucide-react";
 import { Loader2 } from "lucide-react";
+import { Rocket } from "lucide-react";
 
 const Index = () => {
   const { user, loading, signOut } = useAuth();
@@ -59,14 +60,20 @@ const Index = () => {
         <main className="flex-1 overflow-hidden">
           <div className="p-6 bg-white border-b border-border flex items-center justify-between">
             <SidebarTrigger />
-            <Button 
-              variant="outline" 
-              onClick={signOut}
-              className="flex items-center gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              Sair
-            </Button>
+            <div className="flex items-center gap-5">
+              <p className="text-sm text-muted-foreground flex items-center gap-2">
+                <Rocket className="h-3 w-3 text-muted-foreground" />
+                Versão 1.0.1
+              </p>
+              <Button 
+                variant="outline" 
+                onClick={signOut}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Sair
+              </Button>
+            </div>
           </div>
           <div className="p-6 overflow-y-auto h-[calc(100vh-100px)]">
             {renderContent()}
