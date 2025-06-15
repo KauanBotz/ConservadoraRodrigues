@@ -13,6 +13,7 @@ import { Building2, Plus, Edit, Eye, MapPin, DollarSign, FileCheck, Loader2, Sea
 import { useCondominios, type Condominio, type OnibusDetalhe } from "@/hooks/useCondominios";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import { Compass, Wallet } from "lucide-react";
 
 const formatPhoneNumber = (phone: string | null) => {
     if (!phone) return 'Não informado';
@@ -82,6 +83,7 @@ export function Condominios() {
     vencimento_boleto: '',
     cnpj: '',
     transporte_tipo: 'nenhum',
+    valor_inss: '',
   });
   const [linhasDeOnibus, setLinhasDeOnibus] = useState<OnibusDetalhe[]>([]);
 
@@ -121,6 +123,7 @@ export function Condominios() {
       vencimento_boleto: condominio.vencimento_boleto?.toString() || '',
       cnpj: condominio.cnpj || '',
       transporte_tipo: condominio.transporte_tipo || 'nenhum',
+      valor_inss: condominio.valor_inss?.toString() || '',
     });
     setIsDialogOpen(true);
   };
@@ -136,7 +139,7 @@ export function Condominios() {
     setDetalhesCondominio(null);
     setFormData({
       nome: '', endereco: '', valor_servico: '', recebe_nota_fiscal: false, status: 'Ativo',
-      sindico: '', email_sindico: '', telefone_sindico: '', vencimento_boleto: '', cnpj: '', transporte_tipo: 'nenhum',
+      sindico: '', email_sindico: '', telefone_sindico: '', vencimento_boleto: '', cnpj: '', transporte_tipo: 'nenhum', valor_inss: '',
     });
     setIsDialogOpen(true);
   };
@@ -152,6 +155,7 @@ export function Condominios() {
     const condominioData = {
       ...formData,
       valor_servico: formData.valor_servico ? parseFloat(formData.valor_servico) : null,
+      valor_inss: formData.recebe_nota_fiscal && formData.valor_inss ? parseFloat(formData.valor_inss) : null,
       vencimento_boleto: formData.vencimento_boleto ? parseInt(formData.vencimento_boleto) : null,
       transporte_onibus_detalhes: formData.transporte_tipo === 'onibus' ? linhasDeOnibus.filter(l => l.linha) : null,
     };
@@ -174,12 +178,28 @@ export function Condominios() {
 
   const totalValorMensal = condominios.filter(c => c.status === 'Ativo' && c.valor_servico).reduce((sum, c) => sum + (c.valor_servico || 0), 0);
   const totalCondominiosAtivos = condominios.filter(c => c.status === 'Ativo').length;
+  const totalLiquido = condominios
+    .filter(c => c.status === 'Ativo' && c.valor_servico)
+    .reduce((sum, c) => {
+      const inss = c.recebe_nota_fiscal ? c.valor_inss || 0 : 0;
+      return sum + ((c.valor_servico || 0) - inss);
+    }, 0);
   const filteredCondominios = condominios.filter(c => c.nome.toLowerCase().includes(searchTerm.toLowerCase()) || c.endereco.toLowerCase().includes(searchTerm.toLowerCase()) || (c.cnpj && c.cnpj.replace(/\D/g, '').includes(searchTerm.replace(/\D/g, ''))));
 
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="flex items-center justify-between">
-        <div><h1 className="text-3xl font-bold text-foreground flex items-center gap-3"><Building2 className="h-8 w-8 text-primary" />Condomínios</h1><p className="text-muted-foreground">Gerencie os condomínios atendidos</p></div>
+        <div>
+          <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
+            <Building2 className="h-8 w-8 text-primary" />Condomínios
+          </h1>
+          <p className="text-muted-foreground">Gerencie os condomínios atendidos</p>
+          <div className="flex gap-6 text-sm text-muted-foreground mt-2">
+            <p><strong>Total de Condomínios Ativos:</strong> {totalCondominiosAtivos}</p>
+            <p><strong>Total Bruto:</strong> R$ {totalValorMensal.toFixed(2)}</p>
+            <p><strong>Total Líquido:</strong> R$ {totalLiquido.toFixed(2)}</p>
+          </div>
+        </div>
         <Dialog open={isDialogOpen} onOpenChange={(open) => open ? setIsDialogOpen(true) : closeDialog()}>
           <DialogTrigger asChild><Button onClick={handleAddNew}><Plus className="w-4 h-4 mr-2" />Novo Condomínio</Button></DialogTrigger>
           <DialogContent
@@ -199,7 +219,18 @@ export function Condominios() {
                         <div className="flex items-center gap-3"><Phone className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Telefone Síndico(a)</p><p className="font-medium">{formatPhoneNumber(detalhesCondominio.telefone_sindico)}</p></div></div>
                         <div className="flex items-center gap-3"><Mail className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Email Síndico(a)</p><p className="font-medium">{detalhesCondominio.email_sindico || 'Não informado'}</p></div></div>
                         <Separator className="col-span-full"/>
-                        <div className="flex items-center gap-3"><DollarSign className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Valor do Serviço</p><p className="font-medium">R$ {detalhesCondominio.valor_servico?.toFixed(2) || '0.00'}</p></div></div>
+                        <div className="flex items-center gap-3"><Wallet className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Valor do Serviço</p><p className="font-medium">R$ {detalhesCondominio.valor_servico?.toFixed(2) || '0.00'}</p></div></div>
+                        {detalhesCondominio.recebe_nota_fiscal && (
+                          <div className="flex items-center gap-3">
+                            <Compass className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                              <p className="text-xs text-muted-foreground">GPS</p>
+                              <p className="font-medium">R$ {detalhesCondominio.valor_inss?.toFixed(2) || '0.00'}</p>
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-3"><DollarSign className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Valor Líquido</p><p className="font-medium">R$ {totalLiquido.toFixed(2) || '0.00'}</p></div></div>
+                        <Separator className="col-span-full"/>
                         <div className="flex items-center gap-3"><CalendarDays className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Vencimento</p><p className="font-medium">Todo dia {detalhesCondominio.vencimento_boleto || 'N/A'}</p></div></div>
                         <div className="flex items-center gap-3">
                             {detalhesCondominio.status === 'Ativo' ? <ShieldCheck className="h-5 w-5 text-green-600"/> : <ShieldX className="h-5 w-5 text-red-600" />}
@@ -207,6 +238,7 @@ export function Condominios() {
                             <div><p className="text-xs text-muted-foreground">Recebe Nota Fiscal</p><Badge variant="outline" className={detalhesCondominio.recebe_nota_fiscal ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}>{detalhesCondominio.recebe_nota_fiscal ? 'Sim' : 'Não'}</Badge></div>
                         </div>
                         <TransporteInfo condominio={detalhesCondominio}/>
+                        
                     </div>
                     <DialogFooter className="pt-2">
                         <div className="flex-1" />
@@ -239,6 +271,12 @@ export function Condominios() {
                         <Label htmlFor="recebe_nota_fiscal">Recebe Nota Fiscal</Label>
                         <Switch id="recebe_nota_fiscal" checked={formData.recebe_nota_fiscal} onCheckedChange={(checked) => setFormData({ ...formData, recebe_nota_fiscal: checked })} />
                     </div>
+                    {formData.recebe_nota_fiscal && (
+                      <div className="space-y-2">
+                        <Label htmlFor="valor_inss">Valor do INSS</Label>
+                        <Input id="valor_inss" type="number" step="0.01" value={formData.valor_inss} onChange={(e) => setFormData({ ...formData, valor_inss: e.target.value })} />
+                      </div>
+                    )}
                     <Separator className="my-6" />
                     <div className="space-y-4">
                         <Label className="text-base font-medium">Transporte</Label>
@@ -297,6 +335,18 @@ export function Condominios() {
                                 {condominio.recebe_nota_fiscal ? 'Recebe Nota Fiscal' : 'Não recebe Nota Fiscal'}
                             </span>
                         </div>
+                        {condominio.recebe_nota_fiscal && condominio.valor_inss !== null && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Compass className="w-4 h-4 text-muted-foreground" />
+                            <span>GPS: R$ {condominio.valor_inss.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {condominio.valor_servico !== null && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <DollarSign className="w-4 h-4 text-muted-foreground" />
+                            <span>Valor líquido: R$ {totalLiquido.toFixed(2)}</span>
+                          </div>
+                        )}
                         <TransporteInfo condominio={condominio} />
                     </div>
                     <div className="flex gap-2 pt-2">
