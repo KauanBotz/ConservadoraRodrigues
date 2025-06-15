@@ -104,6 +104,7 @@ export function Condominios() {
     const novasLinhas = linhasDeOnibus.filter((_, i) => i !== index);
     setLinhasDeOnibus(novasLinhas);
   }
+  
 
   const handleEdit = (condominio: Condominio) => {
     setDetalhesCondominio(null);
@@ -203,6 +204,7 @@ export function Condominios() {
                         <div className="flex items-center gap-3">
                             {detalhesCondominio.status === 'Ativo' ? <ShieldCheck className="h-5 w-5 text-green-600"/> : <ShieldX className="h-5 w-5 text-red-600" />}
                             <div><p className="text-xs text-muted-foreground">Situação</p><Badge variant="outline" className={detalhesCondominio.status === 'Ativo' ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}>{detalhesCondominio.status}</Badge></div>
+                            <div><p className="text-xs text-muted-foreground">Recebe Nota Fiscal</p><Badge variant="outline" className={detalhesCondominio.recebe_nota_fiscal ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}>{detalhesCondominio.recebe_nota_fiscal ? 'Sim' : 'Não'}</Badge></div>
                         </div>
                         <TransporteInfo condominio={detalhesCondominio}/>
                     </div>
@@ -233,6 +235,9 @@ export function Condominios() {
                     <div className="flex items-center space-x-2 pt-2">
                         <Switch id="status" checked={formData.status === 'Ativo'} onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? 'Ativo' : 'Inativo' })} />
                         <Label htmlFor="status">Condomínio {formData.status}</Label>
+                        <br></br>
+                        <Label htmlFor="recebe_nota_fiscal">Recebe Nota Fiscal</Label>
+                        <Switch id="recebe_nota_fiscal" checked={formData.recebe_nota_fiscal} onCheckedChange={(checked) => setFormData({ ...formData, recebe_nota_fiscal: checked })} />
                     </div>
                     <Separator className="my-6" />
                     <div className="space-y-4">
@@ -286,6 +291,12 @@ export function Condominios() {
                 <CardContent className="space-y-4">
                     <div className="space-y-3">
                         <div className="flex items-center gap-2 text-sm"><UserCircle className="w-4 h-4 text-muted-foreground" /><span>{condominio.sindico || 'Síndico não informado'}</span></div>
+                        <div className="flex items-center gap-2 text-sm">
+                            <FileCheck className="w-4 h-4 text-muted-foreground" />
+                            <span className={`${condominio.recebe_nota_fiscal ? 'text-green-700' : 'text-red-700'}`}>
+                                {condominio.recebe_nota_fiscal ? 'Recebe Nota Fiscal' : 'Não recebe Nota Fiscal'}
+                            </span>
+                        </div>
                         <TransporteInfo condominio={condominio} />
                     </div>
                     <div className="flex gap-2 pt-2">
