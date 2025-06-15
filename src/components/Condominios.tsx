@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+// Adicione 'useRef' na sua importação do react
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { Compass, Wallet } from "lucide-react";
 
+// --- FUNÇÕES DE FORMATAÇÃO (sem alterações) ---
 const formatPhoneNumber = (phone: string | null) => {
     if (!phone) return 'Não informado';
     const cleaned = ('' + phone).replace(/\D/g, '');
@@ -28,7 +30,6 @@ const formatPhoneNumber = (phone: string | null) => {
     }
     return phone;
 };
-
 const formatCNPJ = (cnpj: string | null) => {
     if (!cnpj) return 'Não informado';
     const cleaned = ('' + cnpj).replace(/\D/g, '');
@@ -39,16 +40,20 @@ const formatCNPJ = (cnpj: string | null) => {
     }
     return cnpj;
 }
+const capitalizeWords = (str: string | null) => {
+    if (!str || str.trim() === '') return 'Não informado';
+    return str
+        .toLowerCase()
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+};
+const toLowerCase = (str: string | null) => {
+    if (!str || str.trim() === '') return 'Não informado';
+    return str.toLowerCase();
+};
 
-const capitalizeWords = (str: string) =>
-  str
-    .toLowerCase()
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-
-const toLowerCase = (str: string) => str.toLowerCase();
-
+// --- COMPONENTE TransporteInfo (sem alterações) ---
 const TransporteInfo = ({condominio}: {condominio: Condominio}) => {
     if (condominio.transporte_tipo === 'veiculo_empresa') {
         return <div className="flex items-center gap-3"><Truck className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Transporte</p><p className="font-medium">Veículo da Empresa</p></div></div>;
@@ -73,6 +78,8 @@ const TransporteInfo = ({condominio}: {condominio: Condominio}) => {
     return <div className="flex items-center gap-3"><Truck className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Transporte</p><p className="font-medium">Nenhum</p></div></div>;
 }
 
+
+// --- COMPONENTE PRINCIPAL Condominios ---
 export function Condominios() {
   const { condominios, loading, createCondominio, updateCondominio } = useCondominios();
   const { toast } = useToast();
@@ -96,13 +103,29 @@ export function Condominios() {
   });
   const [linhasDeOnibus, setLinhasDeOnibus] = useState<OnibusDetalhe[]>([]);
 
+  // --- NOVA ADIÇÃO 1: Refs para a rolagem automática ---
+  const onibusFieldsContainerRef = useRef<HTMLDivElement>(null);
+  const prevLinhasCount = useRef(linhasDeOnibus.length);
+
+
   useEffect(() => {
     if(isDialogOpen && editingCondominio) {
       setLinhasDeOnibus(editingCondominio.transporte_onibus_detalhes || []);
     } else if (isDialogOpen && !editingCondominio) {
       setLinhasDeOnibus([]);
     }
-  }, [isDialogOpen, editingCondominio])
+  }, [isDialogOpen, editingCondominio]);
+
+  // --- NOVA ADIÇÃO 2: Efeito para acionar a rolagem ---
+  useEffect(() => {
+    // Se o número de linhas aumentou, role para o final do container
+    if (linhasDeOnibus.length > prevLinhasCount.current) {
+        onibusFieldsContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
+    // Atualiza a contagem anterior para a próxima renderização
+    prevLinhasCount.current = linhasDeOnibus.length;
+  }, [linhasDeOnibus]);
+
 
   const handleLinhaChange = (index: number, field: 'linha' | 'tipo', value: string) => {
     const novasLinhas = [...linhasDeOnibus];
@@ -110,13 +133,17 @@ export function Condominios() {
     setLinhasDeOnibus(novasLinhas);
   }
 
-  const addLinhaField = () => setLinhasDeOnibus([...linhasDeOnibus, { linha: '', tipo: 'bairro' }]);
+  // --- NOVA ADIÇÃO 3: Adicionado toast na função de adicionar campo ---
+  const addLinhaField = () => {
+    setLinhasDeOnibus([...linhasDeOnibus, { linha: '', tipo: 'bairro' }]);
+    toast({ title: "Nova linha de ônibus adicionada!" });
+  };
+
   const removeLinhaField = (index: number) => {
     const novasLinhas = linhasDeOnibus.filter((_, i) => i !== index);
     setLinhasDeOnibus(novasLinhas);
   }
   
-
   const handleEdit = (condominio: Condominio) => {
     setDetalhesCondominio(null);
     setEditingCondominio(condominio);
@@ -187,13 +214,17 @@ export function Condominios() {
 
   const totalValorMensal = condominios.filter(c => c.status === 'Ativo' && c.valor_servico).reduce((sum, c) => sum + (c.valor_servico || 0), 0);
   const totalCondominiosAtivos = condominios.filter(c => c.status === 'Ativo').length;
-  const totalLiquido = condominios
+  const totalLiquidoGeral = condominios
     .filter(c => c.status === 'Ativo' && c.valor_servico)
     .reduce((sum, c) => {
       const inss = c.recebe_nota_fiscal ? c.valor_inss || 0 : 0;
       return sum + ((c.valor_servico || 0) - inss);
     }, 0);
   const filteredCondominios = condominios.filter(c => c.nome.toLowerCase().includes(searchTerm.toLowerCase()) || c.endereco.toLowerCase().includes(searchTerm.toLowerCase()) || (c.cnpj && c.cnpj.replace(/\D/g, '').includes(searchTerm.replace(/\D/g, ''))));
+  
+  const valorLiquidoDetalhes = detalhesCondominio ? 
+    (detalhesCondominio.valor_servico || 0) - (detalhesCondominio.recebe_nota_fiscal ? detalhesCondominio.valor_inss || 0 : 0)
+    : 0;
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -206,7 +237,7 @@ export function Condominios() {
           <div className="flex gap-6 text-sm text-muted-foreground mt-2">
             <p><strong>Total de Condomínios Ativos:</strong> {totalCondominiosAtivos}</p>
             <p><strong>Total Bruto:</strong> R$ {totalValorMensal.toFixed(2)}</p>
-            <p><strong>Total Líquido:</strong> R$ {totalLiquido.toFixed(2)}</p>
+            <p><strong>Total Líquido:</strong> R$ {totalLiquidoGeral.toFixed(2)}</p>
           </div>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={(open) => open ? setIsDialogOpen(true) : closeDialog()}>
@@ -219,44 +250,44 @@ export function Condominios() {
             <DialogHeader><DialogTitle>{editingCondominio ? 'Editar Condomínio' : detalhesCondominio ? 'Detalhes do Condomínio' : 'Novo Condomínio'}</DialogTitle></DialogHeader>
             {detalhesCondominio ? (
                  <div className="space-y-6 pt-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-6">
-                        <div className="flex items-center gap-3"><Building2 className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Nome</p><p className="font-medium">{capitalizeWords(detalhesCondominio.nome)}</p></div></div>
-                        <div className="flex items-center gap-3"><FileCheck className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">CNPJ</p><p className="font-medium">{formatCNPJ(detalhesCondominio.cnpj)}</p></div></div>
-                        <div className="flex items-center gap-3"><MapPin className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Endereço</p><p className="font-medium">{capitalizeWords(detalhesCondominio.endereco)}</p></div></div>
-                        <Separator className="col-span-full"/>
-                        <div className="flex items-center gap-3"><UserCircle className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Síndico(a)</p><p className="font-medium">{capitalizeWords(detalhesCondominio.sindico || 'Não informado')}</p></div></div>
-                        <div className="flex items-center gap-3"><Phone className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Telefone Síndico(a)</p><p className="font-medium">{formatPhoneNumber(detalhesCondominio.telefone_sindico)}</p></div></div>
-                        <div className="flex items-center gap-3"><Mail className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Email Síndico(a)</p><p className="font-medium">{toLowerCase(detalhesCondominio.email_sindico || 'Não informado')}</p></div></div>
-                        <Separator className="col-span-full"/>
-                        <div className="flex items-center gap-3"><Wallet className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Valor do Serviço</p><p className="font-medium">R$ {detalhesCondominio.valor_servico?.toFixed(2) || '0.00'}</p></div></div>
-                        {detalhesCondominio.recebe_nota_fiscal && (
-                          <div className="flex items-center gap-3">
-                            <Compass className="h-5 w-5 text-muted-foreground" />
-                            <div>
-                              <p className="text-xs text-muted-foreground">GPS</p>
-                              <p className="font-medium">R$ {detalhesCondominio.valor_inss?.toFixed(2) || '0.00'}</p>
-                            </div>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-3"><DollarSign className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Valor Líquido</p><p className="font-medium">R$ {totalLiquido.toFixed(2) || '0.00'}</p></div></div>
-                        <Separator className="col-span-full"/>
-                        <div className="flex items-center gap-3"><CalendarDays className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Vencimento</p><p className="font-medium">Todo dia {detalhesCondominio.vencimento_boleto || 'N/A'}</p></div></div>
-                        <div className="flex items-center gap-3">
-                            {detalhesCondominio.status === 'Ativo' ? <ShieldCheck className="h-5 w-5 text-green-600"/> : <ShieldX className="h-5 w-5 text-red-600" />}
-                            <div><p className="text-xs text-muted-foreground">Situação</p><Badge variant="outline" className={detalhesCondominio.status === 'Ativo' ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}>{detalhesCondominio.status}</Badge></div>
-                            <div><p className="text-xs text-muted-foreground">Recebe Nota Fiscal</p><Badge variant="outline" className={detalhesCondominio.recebe_nota_fiscal ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}>{detalhesCondominio.recebe_nota_fiscal ? 'Sim' : 'Não'}</Badge></div>
-                        </div>
-                        <TransporteInfo condominio={detalhesCondominio}/>
-                        
-                    </div>
-                    <DialogFooter className="pt-2">
-                        <div className="flex-1" />
-                        <Button variant="outline" size="sm" className="h-8 px-4" onClick={closeDialog}>
-                            Fechar
-                        </Button>
-                    </DialogFooter>
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-6">
+                         <div className="flex items-center gap-3"><Building2 className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Nome</p><p className="font-medium">{capitalizeWords(detalhesCondominio.nome)}</p></div></div>
+                         <div className="flex items-center gap-3"><FileCheck className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">CNPJ</p><p className="font-medium">{formatCNPJ(detalhesCondominio.cnpj)}</p></div></div>
+                         <div className="flex items-center gap-3"><MapPin className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Endereço</p><p className="font-medium">{capitalizeWords(detalhesCondominio.endereco)}</p></div></div>
+                         <Separator className="col-span-full"/>
+                         <div className="flex items-center gap-3"><UserCircle className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Síndico(a)</p><p className="font-medium">{capitalizeWords(detalhesCondominio.sindico)}</p></div></div>
+                         <div className="flex items-center gap-3"><Phone className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Telefone Síndico(a)</p><p className="font-medium">{formatPhoneNumber(detalhesCondominio.telefone_sindico)}</p></div></div>
+                         <div className="flex items-center gap-3"><Mail className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Email Síndico(a)</p><p className="font-medium">{toLowerCase(detalhesCondominio.email_sindico)}</p></div></div>
+                         <Separator className="col-span-full"/>
+                         <div className="flex items-center gap-3"><Wallet className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Valor do Serviço</p><p className="font-medium">R$ {detalhesCondominio.valor_servico?.toFixed(2) || '0.00'}</p></div></div>
+                         {detalhesCondominio.recebe_nota_fiscal && (
+                           <div className="flex items-center gap-3">
+                             <Compass className="h-5 w-5 text-muted-foreground" />
+                             <div>
+                               <p className="text-xs text-muted-foreground">GPS</p>
+                               <p className="font-medium">R$ {detalhesCondominio.valor_inss?.toFixed(2) || '0.00'}</p>
+                             </div>
+                           </div>
+                         )}
+                         <div className="flex items-center gap-3"><DollarSign className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Valor Líquido</p><p className="font-medium">R$ {valorLiquidoDetalhes.toFixed(2) || '0.00'}</p></div></div>
+                         <Separator className="col-span-full"/>
+                         <div className="flex items-center gap-3"><CalendarDays className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Vencimento</p><p className="font-medium">Todo dia {detalhesCondominio.vencimento_boleto || 'N/A'}</p></div></div>
+                         <div className="flex items-center gap-3">
+                             {detalhesCondominio.status === 'Ativo' ? <ShieldCheck className="h-5 w-5 text-green-600"/> : <ShieldX className="h-5 w-5 text-red-600" />}
+                             <div><p className="text-xs text-muted-foreground">Situação</p><Badge variant="outline" className={detalhesCondominio.status === 'Ativo' ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}>{detalhesCondominio.status}</Badge></div>
+                             <div><p className="text-xs text-muted-foreground">Recebe Nota Fiscal</p><Badge variant="outline" className={detalhesCondominio.recebe_nota_fiscal ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}>{detalhesCondominio.recebe_nota_fiscal ? 'Sim' : 'Não'}</Badge></div>
+                         </div>
+                         <TransporteInfo condominio={detalhesCondominio}/>
+                         
+                     </div>
+                     <DialogFooter className="pt-2">
+                         <div className="flex-1" />
+                         <Button variant="outline" size="sm" className="h-8 px-4" onClick={closeDialog}>
+                             Fechar
+                         </Button>
+                     </DialogFooter>
 
-                </div>
+                 </div>
             ) : (
                 <ScrollArea className="flex-grow pr-6 -mr-6">
                 <form id="condo-form" onSubmit={handleSubmit} className="space-y-4">
@@ -295,7 +326,8 @@ export function Condominios() {
                             <div className="flex items-center space-x-2"><RadioGroupItem value="veiculo_empresa" id="veiculo"/><Label htmlFor="veiculo">Veículo da Empresa</Label></div>
                         </RadioGroup>
                         {formData.transporte_tipo === 'onibus' && (
-                            <div className="space-y-2 pl-2 pt-1 border-l-2 ml-2">
+                            // --- NOVA ADIÇÃO 4: Atribuindo a ref ao container ---
+                            <div ref={onibusFieldsContainerRef} className="space-y-2 pl-2 pt-1 border-l-2 ml-2">
                                 <Button type="button" variant="outline" size="sm" onClick={addLinhaField}><Plus className="h-4 w-4 mr-2"/>Adicionar Linha de Ônibus</Button>
                                 {linhasDeOnibus.length > 0 && linhasDeOnibus.map((onibus, index) => (
                                     <div key={index} className="space-y-3 p-3 bg-muted/50 rounded-lg">
@@ -324,47 +356,51 @@ export function Condominios() {
       <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" /><Input type="text" placeholder="Pesquisar por nome, endereço ou CNPJ..." className="w-full pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredCondominios.map((condominio) => (
-            <Card key={condominio.id} className={`hover:shadow-lg transition-all duration-300 border-l-4 ${condominio.status === 'Ativo' ? 'border-l-yellow-400 bg-white' : 'border-l-red-300 bg-gray-100 text-muted-foreground'}`}>
-                <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                    <div>
-                        <CardTitle className="text-lg text-foreground">{condominio.nome}</CardTitle>
-                        <p className="text-sm text-muted-foreground">{formatCNPJ(condominio.cnpj)}</p>
-                    </div>
-                    <Badge className={`text-xs px-2 py-1 rounded ${condominio.status === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>{condominio.status}</Badge>
-                    </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-2 text-sm"><UserCircle className="w-4 h-4 text-muted-foreground" /><span>{condominio.sindico || 'Síndico não informado'}</span></div>
-                        <div className="flex items-center gap-2 text-sm">
-                            <FileCheck className="w-4 h-4 text-muted-foreground" />
-                            <span className={`${condominio.recebe_nota_fiscal ? 'text-green-700' : 'text-red-700'}`}>
-                                {condominio.recebe_nota_fiscal ? 'Recebe Nota Fiscal' : 'Não recebe Nota Fiscal'}
-                            </span>
+        {filteredCondominios.map((condominio) => {
+            const valorLiquidoIndividual = (condominio.valor_servico || 0) - (condominio.recebe_nota_fiscal ? condominio.valor_inss || 0 : 0);
+            
+            return (
+                <Card key={condominio.id} className={`hover:shadow-lg transition-all duration-300 border-l-4 ${condominio.status === 'Ativo' ? 'border-l-yellow-400 bg-white' : 'border-l-red-300 bg-gray-100 text-muted-foreground'}`}>
+                    <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                        <div>
+                            <CardTitle className="text-lg text-foreground">{capitalizeWords(condominio.nome)}</CardTitle>
+                            <p className="text-sm text-muted-foreground">{formatCNPJ(condominio.cnpj)}</p>
                         </div>
-                        {condominio.recebe_nota_fiscal && condominio.valor_inss !== null && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Compass className="w-4 h-4 text-muted-foreground" />
-                            <span>GPS: R$ {condominio.valor_inss.toFixed(2)}</span>
-                          </div>
-                        )}
-                        {condominio.valor_servico !== null && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <DollarSign className="w-4 h-4 text-muted-foreground" />
-                            <span>Valor líquido: R$ {totalLiquido.toFixed(2)}</span>
-                          </div>
-                        )}
-                        <TransporteInfo condominio={condominio} />
-                    </div>
-                    <div className="flex gap-2 pt-2">
-                        <Button variant="outline" size="sm" onClick={() => handleEdit(condominio)} className="flex-1"><Edit className="w-3 h-3 mr-1" />Editar</Button>
-                        <Button variant="outline" size="sm" className="flex-1" onClick={() => handleDetails(condominio)}><Eye className="w-3 h-3 mr-1" />Detalhes</Button>
-                    </div>
-                </CardContent>
-            </Card>
-        ))}
+                        <Badge className={`text-xs px-2 py-1 rounded ${condominio.status === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>{condominio.status}</Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-sm"><UserCircle className="w-4 h-4 text-muted-foreground" /><span>{capitalizeWords(condominio.sindico)}</span></div>
+                            <div className="flex items-center gap-2 text-sm">
+                                <FileCheck className="w-4 h-4 text-muted-foreground" />
+                                <span className={`${condominio.recebe_nota_fiscal ? 'text-green-700' : 'text-red-700'}`}>
+                                    {condominio.recebe_nota_fiscal ? 'Recebe Nota Fiscal' : 'Não recebe Nota Fiscal'}
+                                </span>
+                            </div>
+                            {condominio.recebe_nota_fiscal && condominio.valor_inss !== null && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <Compass className="w-4 h-4 text-muted-foreground" />
+                                <span>GPS: R$ {condominio.valor_inss.toFixed(2)}</span>
+                              </div>
+                            )}
+                            {condominio.valor_servico !== null && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <DollarSign className="w-4 h-4 text-muted-foreground" />
+                                <span>Valor líquido: R$ {valorLiquidoIndividual.toFixed(2)}</span>
+                              </div>
+                            )}
+                            <TransporteInfo condominio={condominio} />
+                        </div>
+                        <div className="flex gap-2 pt-2">
+                            <Button variant="outline" size="sm" onClick={() => handleEdit(condominio)} className="flex-1"><Edit className="w-3 h-3 mr-1" />Editar</Button>
+                            <Button variant="outline" size="sm" className="flex-1" onClick={() => handleDetails(condominio)}><Eye className="w-3 h-3 mr-1" />Detalhes</Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            )
+        })}
       </div>
     </div>
   );
