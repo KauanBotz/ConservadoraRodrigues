@@ -103,7 +103,6 @@ export function Condominios() {
   });
   const [linhasDeOnibus, setLinhasDeOnibus] = useState<OnibusDetalhe[]>([]);
 
-  // --- NOVA ADIÇÃO 1: Refs para a rolagem automática ---
   const onibusFieldsContainerRef = useRef<HTMLDivElement>(null);
   const prevLinhasCount = useRef(linhasDeOnibus.length);
 
@@ -116,13 +115,10 @@ export function Condominios() {
     }
   }, [isDialogOpen, editingCondominio]);
 
-  // --- NOVA ADIÇÃO 2: Efeito para acionar a rolagem ---
   useEffect(() => {
-    // Se o número de linhas aumentou, role para o final do container
     if (linhasDeOnibus.length > prevLinhasCount.current) {
         onibusFieldsContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
     }
-    // Atualiza a contagem anterior para a próxima renderização
     prevLinhasCount.current = linhasDeOnibus.length;
   }, [linhasDeOnibus]);
 
@@ -133,7 +129,6 @@ export function Condominios() {
     setLinhasDeOnibus(novasLinhas);
   }
 
-  // --- NOVA ADIÇÃO 3: Adicionado toast na função de adicionar campo ---
   const addLinhaField = () => {
     setLinhasDeOnibus([...linhasDeOnibus, { linha: '', tipo: 'bairro' }]);
     toast({ title: "Nova linha de ônibus adicionada!" });
@@ -182,7 +177,12 @@ export function Condominios() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+ 
+    if (!formData.cnpj || formData.cnpj.trim() === '') {
+        toast({ title: "Campo Obrigatório", description: "Por favor, preencha o CNPJ.", variant: "destructive" });
+        return;
+    }
+    
     if (!formData.vencimento_boleto) {
         toast({ title: "Campo Obrigatório", description: "Por favor, selecione o dia do vencimento do boleto.", variant: "destructive" });
         return;
@@ -220,7 +220,20 @@ export function Condominios() {
       const inss = c.recebe_nota_fiscal ? c.valor_inss || 0 : 0;
       return sum + ((c.valor_servico || 0) - inss);
     }, 0);
-  const filteredCondominios = condominios.filter(c => c.nome.toLowerCase().includes(searchTerm.toLowerCase()) || c.endereco.toLowerCase().includes(searchTerm.toLowerCase()) || (c.cnpj && c.cnpj.replace(/\D/g, '').includes(searchTerm.replace(/\D/g, ''))));
+
+  // --- MUDANÇA 1: Lógica de pesquisa mais robusta e clara ---
+  const filteredCondominios = condominios.filter(c => {
+    if (!searchTerm) return true; // Se a busca estiver vazia, mostra todos
+
+    const lowerCaseSearchTerm = searchTerm.toLowerCase();
+    const cleanedSearchTerm = searchTerm.replace(/\D/g, '');
+
+    const nameMatch = c.nome && c.nome.toLowerCase().includes(lowerCaseSearchTerm);
+    const addressMatch = c.endereco && c.endereco.toLowerCase().includes(lowerCaseSearchTerm);
+    const cnpjMatch = c.cnpj && cleanedSearchTerm.length > 0 && c.cnpj.replace(/\D/g, '').includes(cleanedSearchTerm);
+
+    return nameMatch || addressMatch || cnpjMatch;
+  });
   
   const valorLiquidoDetalhes = detalhesCondominio ? 
     (detalhesCondominio.valor_servico || 0) - (detalhesCondominio.recebe_nota_fiscal ? detalhesCondominio.valor_inss || 0 : 0)
@@ -234,7 +247,7 @@ export function Condominios() {
             <Building2 className="h-8 w-8 text-primary" />Condomínios
           </h1>
           <p className="text-muted-foreground">Gerencie os condomínios atendidos</p>
-          <div className="flex gap-6 text-sm text-muted-foreground mt-2">
+          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground mt-2">
             <p><strong>Total de Condomínios Ativos:</strong> {totalCondominiosAtivos}</p>
             <p><strong>Total Bruto:</strong> R$ {totalValorMensal.toFixed(2)}</p>
             <p><strong>Total Líquido:</strong> R$ {totalLiquidoGeral.toFixed(2)}</p>
@@ -242,7 +255,15 @@ export function Condominios() {
         </div>
         <Dialog open={isDialogOpen} onOpenChange={(open) => open ? setIsDialogOpen(true) : closeDialog()}>
           <DialogTrigger asChild><Button onClick={handleAddNew}><Plus className="w-4 h-4 mr-2" />Novo Condomínio</Button></DialogTrigger>
+          {/* --- MUDANÇA 2: Impedir o fechamento do Dialog no formulário --- */}
           <DialogContent
+            onPointerDownOutside={(e) => {
+                // Previne o fechamento se estiver no modo de criação ou edição
+                const isFormMode = editingCondominio || (!editingCondominio && !detalhesCondominio);
+                if (isFormMode) {
+                    e.preventDefault();
+                }
+            }}
             className={`max-w-3xl flex flex-col ${
               detalhesCondominio ? 'md:max-h-[58vh] overflow-y-auto' : 'md:h-[90vh]'
             }`}
@@ -293,7 +314,12 @@ export function Condominios() {
                 <form id="condo-form" onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2"><Label htmlFor="nome">Nome do Condomínio</Label><Input id="nome" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} required /></div>
-                      <div className="space-y-2"><Label htmlFor="cnpj">CNPJ</Label><Input id="cnpj" value={formData.cnpj} onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })} /></div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="cnpj">CNPJ <span className="text-red-500">*</span></Label>
+                        <Input id="cnpj" value={formData.cnpj} onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })} required />
+                      </div>
+                      
                       <div className="space-y-2 col-span-2"><Label htmlFor="endereco">Endereço Completo</Label><Input id="endereco" value={formData.endereco} onChange={(e) => setFormData({ ...formData, endereco: e.target.value })} required /></div>
                       <div className="space-y-2"><Label htmlFor="sindico">Nome do Síndico(a)</Label><Input id="sindico" value={formData.sindico} onChange={(e) => setFormData({ ...formData, sindico: e.target.value })} /></div>
                       <div className="space-y-2"><Label htmlFor="telefone_sindico">Telefone do Síndico(a)</Label><Input id="telefone_sindico" value={formData.telefone_sindico} onChange={(e) => setFormData({ ...formData, telefone_sindico: e.target.value })} /></div>
@@ -308,12 +334,14 @@ export function Condominios() {
                         <Switch id="status" checked={formData.status === 'Ativo'} onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? 'Ativo' : 'Inativo' })} />
                         <Label htmlFor="status">Condomínio {formData.status}</Label>
                         <br></br>
+                        <div className="flex items-center space-x-2">
                         <Label htmlFor="recebe_nota_fiscal">Recebe Nota Fiscal</Label>
                         <Switch id="recebe_nota_fiscal" checked={formData.recebe_nota_fiscal} onCheckedChange={(checked) => setFormData({ ...formData, recebe_nota_fiscal: checked })} />
+                        </div>
                     </div>
                     {formData.recebe_nota_fiscal && (
                       <div className="space-y-2">
-                        <Label htmlFor="valor_inss">Valor do INSS</Label>
+                        <Label htmlFor="valor_inss">Valor do GPS</Label>
                         <Input id="valor_inss" type="number" step="0.01" value={formData.valor_inss} onChange={(e) => setFormData({ ...formData, valor_inss: e.target.value })} />
                       </div>
                     )}
@@ -326,7 +354,6 @@ export function Condominios() {
                             <div className="flex items-center space-x-2"><RadioGroupItem value="veiculo_empresa" id="veiculo"/><Label htmlFor="veiculo">Veículo da Empresa</Label></div>
                         </RadioGroup>
                         {formData.transporte_tipo === 'onibus' && (
-                            // --- NOVA ADIÇÃO 4: Atribuindo a ref ao container ---
                             <div ref={onibusFieldsContainerRef} className="space-y-2 pl-2 pt-1 border-l-2 ml-2">
                                 <Button type="button" variant="outline" size="sm" onClick={addLinhaField}><Plus className="h-4 w-4 mr-2"/>Adicionar Linha de Ônibus</Button>
                                 {linhasDeOnibus.length > 0 && linhasDeOnibus.map((onibus, index) => (
