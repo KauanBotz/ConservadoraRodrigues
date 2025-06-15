@@ -221,18 +221,19 @@ export function Condominios() {
       return sum + ((c.valor_servico || 0) - inss);
     }, 0);
 
-  // --- MUDANÇA 1: Lógica de pesquisa mais robusta e clara ---
+  // --- MUDANÇA 1: Lógica de pesquisa incluindo o SÍNDICO ---
   const filteredCondominios = condominios.filter(c => {
-    if (!searchTerm) return true; // Se a busca estiver vazia, mostra todos
+    if (!searchTerm) return true; 
 
     const lowerCaseSearchTerm = searchTerm.toLowerCase();
     const cleanedSearchTerm = searchTerm.replace(/\D/g, '');
 
     const nameMatch = c.nome && c.nome.toLowerCase().includes(lowerCaseSearchTerm);
+    const sindicoMatch = c.sindico && c.sindico.toLowerCase().includes(lowerCaseSearchTerm);
     const addressMatch = c.endereco && c.endereco.toLowerCase().includes(lowerCaseSearchTerm);
     const cnpjMatch = c.cnpj && cleanedSearchTerm.length > 0 && c.cnpj.replace(/\D/g, '').includes(cleanedSearchTerm);
 
-    return nameMatch || addressMatch || cnpjMatch;
+    return nameMatch || sindicoMatch || addressMatch || cnpjMatch;
   });
   
   const valorLiquidoDetalhes = detalhesCondominio ? 
@@ -255,10 +256,8 @@ export function Condominios() {
         </div>
         <Dialog open={isDialogOpen} onOpenChange={(open) => open ? setIsDialogOpen(true) : closeDialog()}>
           <DialogTrigger asChild><Button onClick={handleAddNew}><Plus className="w-4 h-4 mr-2" />Novo Condomínio</Button></DialogTrigger>
-          {/* --- MUDANÇA 2: Impedir o fechamento do Dialog no formulário --- */}
           <DialogContent
             onPointerDownOutside={(e) => {
-                // Previne o fechamento se estiver no modo de criação ou edição
                 const isFormMode = editingCondominio || (!editingCondominio && !detalhesCondominio);
                 if (isFormMode) {
                     e.preventDefault();
@@ -293,11 +292,17 @@ export function Condominios() {
                          <div className="flex items-center gap-3"><DollarSign className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Valor Líquido</p><p className="font-medium">R$ {valorLiquidoDetalhes.toFixed(2) || '0.00'}</p></div></div>
                          <Separator className="col-span-full"/>
                          <div className="flex items-center gap-3"><CalendarDays className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Vencimento</p><p className="font-medium">Todo dia {detalhesCondominio.vencimento_boleto || 'N/A'}</p></div></div>
+                         
+                         {/* --- MUDANÇA 2: Reorganização do Status e Nota Fiscal na janela de DETALHES --- */}
                          <div className="flex items-center gap-3">
-                             {detalhesCondominio.status === 'Ativo' ? <ShieldCheck className="h-5 w-5 text-green-600"/> : <ShieldX className="h-5 w-5 text-red-600" />}
-                             <div><p className="text-xs text-muted-foreground">Situação</p><Badge variant="outline" className={detalhesCondominio.status === 'Ativo' ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}>{detalhesCondominio.status}</Badge></div>
-                             <div><p className="text-xs text-muted-foreground">Recebe Nota Fiscal</p><Badge variant="outline" className={detalhesCondominio.recebe_nota_fiscal ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}>{detalhesCondominio.recebe_nota_fiscal ? 'Sim' : 'Não'}</Badge></div>
+                            {detalhesCondominio.status === 'Ativo' ? <ShieldCheck className="h-5 w-5 text-green-600"/> : <ShieldX className="h-5 w-5 text-red-600" />}
+                            <div><p className="text-xs text-muted-foreground">Situação</p><Badge variant="outline" className={detalhesCondominio.status === 'Ativo' ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}>{detalhesCondominio.status}</Badge></div>
                          </div>
+                         <div className="flex items-center gap-3">
+                            {detalhesCondominio.recebe_nota_fiscal ? <ShieldCheck className="h-5 w-5 text-green-600"/> : <ShieldX className="h-5 w-5 text-red-600" />}
+                            <div><p className="text-xs text-muted-foreground">Recebe Nota Fiscal</p><Badge variant="outline" className={detalhesCondominio.recebe_nota_fiscal ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}>{detalhesCondominio.recebe_nota_fiscal ? 'Sim' : 'Não'}</Badge></div>
+                         </div>
+                         
                          <TransporteInfo condominio={detalhesCondominio}/>
                          
                      </div>
@@ -334,10 +339,8 @@ export function Condominios() {
                         <Switch id="status" checked={formData.status === 'Ativo'} onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? 'Ativo' : 'Inativo' })} />
                         <Label htmlFor="status">Condomínio {formData.status}</Label>
                         <br></br>
-                        <div className="flex items-center space-x-2">
                         <Label htmlFor="recebe_nota_fiscal">Recebe Nota Fiscal</Label>
                         <Switch id="recebe_nota_fiscal" checked={formData.recebe_nota_fiscal} onCheckedChange={(checked) => setFormData({ ...formData, recebe_nota_fiscal: checked })} />
-                        </div>
                     </div>
                     {formData.recebe_nota_fiscal && (
                       <div className="space-y-2">
@@ -380,7 +383,8 @@ export function Condominios() {
         </Dialog>
       </div>
       
-      <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" /><Input type="text" placeholder="Pesquisar por nome, endereço ou CNPJ..." className="w-full pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
+      {/* --- MUDANÇA 3: Atualizado o placeholder da busca --- */}
+      <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" /><Input type="text" placeholder="Pesquisar por nome, síndico, endereço ou CNPJ..." className="w-full pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredCondominios.map((condominio) => {
@@ -394,18 +398,22 @@ export function Condominios() {
                             <CardTitle className="text-lg text-foreground">{capitalizeWords(condominio.nome)}</CardTitle>
                             <p className="text-sm text-muted-foreground">{formatCNPJ(condominio.cnpj)}</p>
                         </div>
+                        {/* O Badge de status continua no cabeçalho do card para destaque visual */}
                         <Badge className={`text-xs px-2 py-1 rounded ${condominio.status === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>{condominio.status}</Badge>
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-3">
                             <div className="flex items-center gap-2 text-sm"><UserCircle className="w-4 h-4 text-muted-foreground" /><span>{capitalizeWords(condominio.sindico)}</span></div>
+
+                            {/* --- MUDANÇA 4: Reorganização do Status e Nota Fiscal no CARD --- */}
                             <div className="flex items-center gap-2 text-sm">
                                 <FileCheck className="w-4 h-4 text-muted-foreground" />
                                 <span className={`${condominio.recebe_nota_fiscal ? 'text-green-700' : 'text-red-700'}`}>
                                     {condominio.recebe_nota_fiscal ? 'Recebe Nota Fiscal' : 'Não recebe Nota Fiscal'}
                                 </span>
                             </div>
+
                             {condominio.recebe_nota_fiscal && condominio.valor_inss !== null && (
                               <div className="flex items-center gap-2 text-sm">
                                 <Compass className="w-4 h-4 text-muted-foreground" />
