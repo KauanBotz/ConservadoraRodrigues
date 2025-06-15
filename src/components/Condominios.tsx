@@ -1,4 +1,3 @@
-// Adicione 'useRef' na sua importação do react
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,13 +9,13 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Building2, Plus, Edit, Eye, MapPin, DollarSign, FileCheck, Loader2, Search, UserCircle, Mail, Phone, CalendarDays, Bus, Truck, Trash2, ShieldCheck, ShieldX } from "lucide-react";
+import { Building2, Plus, Edit, Eye, MapPin, DollarSign, FileCheck, Loader2, Search, UserCircle, Mail, Phone, CalendarDays, Bus, Truck, Trash2, ShieldCheck, ShieldX, Coins } from "lucide-react";
 import { useCondominios, type Condominio, type OnibusDetalhe } from "@/hooks/useCondominios";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { Compass, Wallet } from "lucide-react";
 
-// --- FUNÇÕES DE FORMATAÇÃO (sem alterações) ---
+// --- FUNÇÕES DE FORMATAÇÃO ---
 const formatPhoneNumber = (phone: string | null) => {
     if (!phone) return 'Não informado';
     const cleaned = ('' + phone).replace(/\D/g, '');
@@ -53,7 +52,6 @@ const toLowerCase = (str: string | null) => {
     return str.toLowerCase();
 };
 
-// --- COMPONENTE TransporteInfo (sem alterações) ---
 const TransporteInfo = ({condominio}: {condominio: Condominio}) => {
     if (condominio.transporte_tipo === 'veiculo_empresa') {
         return <div className="flex items-center gap-3"><Truck className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Transporte</p><p className="font-medium">Veículo da Empresa</p></div></div>;
@@ -105,6 +103,7 @@ export function Condominios() {
 
   const onibusFieldsContainerRef = useRef<HTMLDivElement>(null);
   const prevLinhasCount = useRef(linhasDeOnibus.length);
+  const valorInssRef = useRef<HTMLDivElement>(null);
 
 
   useEffect(() => {
@@ -122,6 +121,26 @@ export function Condominios() {
     prevLinhasCount.current = linhasDeOnibus.length;
   }, [linhasDeOnibus]);
 
+  // --- MUDANÇA: Novo useEffect para rolar a tela ao selecionar "Ônibus" ---
+  useEffect(() => {
+    if (formData.transporte_tipo === 'onibus') {
+      // Usamos um pequeno timeout para garantir que o elemento esteja visível no DOM antes de rolar
+      setTimeout(() => {
+        onibusFieldsContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }, 100);
+    }
+  }, [formData.transporte_tipo]);
+
+// Este useEffect observa a mudança e rola a tela para o campo de GPS/INSS
+useEffect(() => {
+  // A condição verifica se a opção foi ATIVADA
+  if (formData.recebe_nota_fiscal) {
+    // Usamos um pequeno timeout para garantir que o elemento foi renderizado antes de rolar
+    setTimeout(() => {
+      valorInssRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  }
+}, [formData.recebe_nota_fiscal]); // A mágica acontece quando este valor muda
 
   const handleLinhaChange = (index: number, field: 'linha' | 'tipo', value: string) => {
     const novasLinhas = [...linhasDeOnibus];
@@ -188,6 +207,22 @@ export function Condominios() {
         return;
     }
 
+    const isCnpjDuplicate = condominios.some(condo => {
+        if (editingCondominio) {
+            return condo.cnpj === formData.cnpj && condo.id !== editingCondominio.id;
+        }
+        return condo.cnpj === formData.cnpj;
+    });
+
+    if (isCnpjDuplicate) {
+        toast({
+            title: "CNPJ Duplicado",
+            description: "Este CNPJ já está cadastrado no sistema.",
+            variant: "destructive",
+        });
+        return;
+    }
+
     const condominioData = {
       ...formData,
       valor_servico: formData.valor_servico ? parseFloat(formData.valor_servico) : null,
@@ -221,7 +256,6 @@ export function Condominios() {
       return sum + ((c.valor_servico || 0) - inss);
     }, 0);
 
-  // --- MUDANÇA 1: Lógica de pesquisa incluindo o SÍNDICO ---
   const filteredCondominios = condominios.filter(c => {
     if (!searchTerm) return true; 
 
@@ -269,121 +303,240 @@ export function Condominios() {
           >
             <DialogHeader><DialogTitle>{editingCondominio ? 'Editar Condomínio' : detalhesCondominio ? 'Detalhes do Condomínio' : 'Novo Condomínio'}</DialogTitle></DialogHeader>
             {detalhesCondominio ? (
-                 <div className="space-y-6 pt-4">
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-6">
-                         <div className="flex items-center gap-3"><Building2 className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Nome</p><p className="font-medium">{capitalizeWords(detalhesCondominio.nome)}</p></div></div>
-                         <div className="flex items-center gap-3"><FileCheck className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">CNPJ</p><p className="font-medium">{formatCNPJ(detalhesCondominio.cnpj)}</p></div></div>
-                         <div className="flex items-center gap-3"><MapPin className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Endereço</p><p className="font-medium">{capitalizeWords(detalhesCondominio.endereco)}</p></div></div>
-                         <Separator className="col-span-full"/>
-                         <div className="flex items-center gap-3"><UserCircle className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Síndico(a)</p><p className="font-medium">{capitalizeWords(detalhesCondominio.sindico)}</p></div></div>
-                         <div className="flex items-center gap-3"><Phone className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Telefone Síndico(a)</p><p className="font-medium">{formatPhoneNumber(detalhesCondominio.telefone_sindico)}</p></div></div>
-                         <div className="flex items-center gap-3"><Mail className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Email Síndico(a)</p><p className="font-medium">{toLowerCase(detalhesCondominio.email_sindico)}</p></div></div>
-                         <Separator className="col-span-full"/>
-                         <div className="flex items-center gap-3"><Wallet className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Valor do Serviço</p><p className="font-medium">R$ {detalhesCondominio.valor_servico?.toFixed(2) || '0.00'}</p></div></div>
-                         {detalhesCondominio.recebe_nota_fiscal && (
-                           <div className="flex items-center gap-3">
-                             <Compass className="h-5 w-5 text-muted-foreground" />
-                             <div>
-                               <p className="text-xs text-muted-foreground">GPS</p>
-                               <p className="font-medium">R$ {detalhesCondominio.valor_inss?.toFixed(2) || '0.00'}</p>
-                             </div>
-                           </div>
-                         )}
-                         <div className="flex items-center gap-3"><DollarSign className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Valor Líquido</p><p className="font-medium">R$ {valorLiquidoDetalhes.toFixed(2) || '0.00'}</p></div></div>
-                         <Separator className="col-span-full"/>
-                         <div className="flex items-center gap-3"><CalendarDays className="h-5 w-5 text-muted-foreground" /><div><p className="text-xs text-muted-foreground">Vencimento</p><p className="font-medium">Todo dia {detalhesCondominio.vencimento_boleto || 'N/A'}</p></div></div>
-                         
-                         {/* --- MUDANÇA 2: Reorganização do Status e Nota Fiscal na janela de DETALHES --- */}
-                         <div className="flex items-center gap-3">
-                            {detalhesCondominio.status === 'Ativo' ? <ShieldCheck className="h-5 w-5 text-green-600"/> : <ShieldX className="h-5 w-5 text-red-600" />}
-                            <div><p className="text-xs text-muted-foreground">Situação</p><Badge variant="outline" className={detalhesCondominio.status === 'Ativo' ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}>{detalhesCondominio.status}</Badge></div>
-                         </div>
-                         <div className="flex items-center gap-3">
-                            {detalhesCondominio.recebe_nota_fiscal ? <ShieldCheck className="h-5 w-5 text-green-600"/> : <ShieldX className="h-5 w-5 text-red-600" />}
-                            <div><p className="text-xs text-muted-foreground">Recebe Nota Fiscal</p><Badge variant="outline" className={detalhesCondominio.recebe_nota_fiscal ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}>{detalhesCondominio.recebe_nota_fiscal ? 'Sim' : 'Não'}</Badge></div>
-                         </div>
-                         
-                         <TransporteInfo condominio={detalhesCondominio}/>
-                         
-                     </div>
-                     <DialogFooter className="pt-2">
-                         <div className="flex-1" />
-                         <Button variant="outline" size="sm" className="h-8 px-4" onClick={closeDialog}>
-                             Fechar
-                         </Button>
-                     </DialogFooter>
+                <div className="space-y-6 pt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-6">
+                        {/* --- LINHA 1: Informações Principais --- */}
+                        <div className="flex items-center gap-3">
+                            <Building2 className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                                <p className="text-xs text-muted-foreground">Nome</p>
+                                <p className="font-medium">{capitalizeWords(detalhesCondominio.nome)}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <FileCheck className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                                <p className="text-xs text-muted-foreground">CNPJ</p>
+                                <p className="font-medium">{formatCNPJ(detalhesCondominio.cnpj)}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <MapPin className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                                <p className="text-xs text-muted-foreground">Endereço</p>
+                                <p className="font-medium">{capitalizeWords(detalhesCondominio.endereco)}</p>
+                            </div>
+                        </div>
 
-                 </div>
-            ) : (
-                <ScrollArea className="flex-grow pr-6 -mr-6">
-                <form id="condo-form" onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2"><Label htmlFor="nome">Nome do Condomínio</Label><Input id="nome" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} required /></div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="cnpj">CNPJ <span className="text-red-500">*</span></Label>
-                        <Input id="cnpj" value={formData.cnpj} onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })} required />
-                      </div>
-                      
-                      <div className="space-y-2 col-span-2"><Label htmlFor="endereco">Endereço Completo</Label><Input id="endereco" value={formData.endereco} onChange={(e) => setFormData({ ...formData, endereco: e.target.value })} required /></div>
-                      <div className="space-y-2"><Label htmlFor="sindico">Nome do Síndico(a)</Label><Input id="sindico" value={formData.sindico} onChange={(e) => setFormData({ ...formData, sindico: e.target.value })} /></div>
-                      <div className="space-y-2"><Label htmlFor="telefone_sindico">Telefone do Síndico(a)</Label><Input id="telefone_sindico" value={formData.telefone_sindico} onChange={(e) => setFormData({ ...formData, telefone_sindico: e.target.value })} /></div>
-                      <div className="space-y-2 col-span-2"><Label htmlFor="email_sindico">Email do Síndico(a)</Label><Input id="email_sindico" type="email" value={formData.email_sindico} onChange={(e) => setFormData({ ...formData, email_sindico: e.target.value })} /></div>
-                      <div className="space-y-2"><Label htmlFor="valor">Valor Mensal (R$)</Label><Input id="valor" type="number" step="0.01" value={formData.valor_servico} onChange={(e) => setFormData({ ...formData, valor_servico: e.target.value })} /></div>
-                      <div className="space-y-2"><Label htmlFor="vencimento_boleto">Dia do Vencimento <span className="text-red-500">*</span></Label><Select value={formData.vencimento_boleto} onValueChange={(value) => setFormData({ ...formData, vencimento_boleto: value })}><SelectTrigger><SelectValue placeholder="Selecione o dia" /></SelectTrigger><SelectContent>{Array.from({ length: 31 }, (_, i) => i + 1).map(day => (<SelectItem key={day} value={day.toString()}>{day}</SelectItem>))}</SelectContent></Select></div>
-                    </div>
-                    <Separator className="my-6" />
-                    <div className="space-y-4"></div>
-                    <Label className="text-base font-medium">Controle Administrativo</Label>
-                    <div className="flex items-center space-x-2 pt-2">
-                        <Switch id="status" checked={formData.status === 'Ativo'} onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? 'Ativo' : 'Inativo' })} />
-                        <Label htmlFor="status">Condomínio {formData.status}</Label>
-                        <br></br>
-                        <Label htmlFor="recebe_nota_fiscal">Recebe Nota Fiscal</Label>
-                        <Switch id="recebe_nota_fiscal" checked={formData.recebe_nota_fiscal} onCheckedChange={(checked) => setFormData({ ...formData, recebe_nota_fiscal: checked })} />
-                    </div>
-                    {formData.recebe_nota_fiscal && (
-                      <div className="space-y-2">
-                        <Label htmlFor="valor_inss">Valor do GPS</Label>
-                        <Input id="valor_inss" type="number" step="0.01" value={formData.valor_inss} onChange={(e) => setFormData({ ...formData, valor_inss: e.target.value })} />
-                      </div>
-                    )}
-                    <Separator className="my-6" />
-                    <div className="space-y-4">
-                        <Label className="text-base font-medium">Transporte</Label>
-                        <RadioGroup value={formData.transporte_tipo} onValueChange={(value) => setFormData({...formData, transporte_tipo: value})} className="flex space-x-4 pt-2">
-                            <div className="flex items-center space-x-2"><RadioGroupItem value="nenhum" id="nenhum"/><Label htmlFor="nenhum">Nenhum</Label></div>
-                            <div className="flex items-center space-x-2"><RadioGroupItem value="onibus" id="onibus"/><Label htmlFor="onibus">Ônibus</Label></div>
-                            <div className="flex items-center space-x-2"><RadioGroupItem value="veiculo_empresa" id="veiculo"/><Label htmlFor="veiculo">Veículo da Empresa</Label></div>
-                        </RadioGroup>
-                        {formData.transporte_tipo === 'onibus' && (
-                            <div ref={onibusFieldsContainerRef} className="space-y-2 pl-2 pt-1 border-l-2 ml-2">
-                                <Button type="button" variant="outline" size="sm" onClick={addLinhaField}><Plus className="h-4 w-4 mr-2"/>Adicionar Linha de Ônibus</Button>
-                                {linhasDeOnibus.length > 0 && linhasDeOnibus.map((onibus, index) => (
-                                    <div key={index} className="space-y-3 p-3 bg-muted/50 rounded-lg">
-                                        <div className="flex justify-between items-center">
-                                            <Label htmlFor={`linha-${index}`} className="font-semibold">Linha de Ônibus {index + 1}</Label>
-                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeLinhaField(index)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
-                                        </div>
-                                        <Input id={`linha-${index}`} value={onibus.linha} onChange={(e) => handleLinhaChange(index, 'linha', e.target.value)} placeholder="Ex: 619, 617, 50" />
-                                        <RadioGroup value={onibus.tipo} onValueChange={(value) => handleLinhaChange(index, 'tipo', value)} className="flex space-x-4 pt-2">
-                                            <div className="flex items-center space-x-2"><RadioGroupItem value="bairro" id={`bairro-${index}`}/><Label htmlFor={`bairro-${index}`}>Bairro</Label></div>
-                                            <div className="flex items-center space-x-2"><RadioGroupItem value="move" id={`move-${index}`}/><Label htmlFor={`move-${index}`}>MOVE</Label></div>
-                                        </RadioGroup>
-                                    </div>
-                                ))}
+                        <Separator className="col-span-full" />
+
+                        {/* --- LINHA 2: Informações do Síndico --- */}
+                        <div className="flex items-center gap-3">
+                            <UserCircle className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                                <p className="text-xs text-muted-foreground">Síndico(a)</p>
+                                <p className="font-medium">{capitalizeWords(detalhesCondominio.sindico)}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <Phone className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                                <p className="text-xs text-muted-foreground">Telefone Síndico(a)</p>
+                                <p className="font-medium">{formatPhoneNumber(detalhesCondominio.telefone_sindico)}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <Mail className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                                <p className="text-xs text-muted-foreground">Email Síndico(a)</p>
+                                <p className="font-medium break-all">{toLowerCase(detalhesCondominio.email_sindico)}</p>
+                            </div>
+                        </div>
+
+                        <Separator className="col-span-full" />
+
+                        {/* --- LINHA 3: Informações Financeiras --- */}
+                        <div className="flex items-center gap-3">
+                            <Wallet className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                                <p className="text-xs text-muted-foreground">Valor do Serviço</p>
+                                <p className="font-medium">R$ {detalhesCondominio.valor_servico?.toFixed(2) || '0.00'}</p>
+                            </div>
+                        </div>
+                        {detalhesCondominio.recebe_nota_fiscal && (
+                            <div className="flex items-center gap-3">
+                                <Compass className="h-5 w-5 text-muted-foreground" />
+                                <div>
+                                    <p className="text-xs text-muted-foreground">GPS</p>
+                                    <p className="font-medium">R$ {detalhesCondominio.valor_inss?.toFixed(2) || '0.00'}</p>
+                                </div>
                             </div>
                         )}
+                        <div className="flex items-center gap-3">
+                            <DollarSign className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                                <p className="text-xs text-muted-foreground">Valor Líquido</p>
+                                <p className="font-medium">R$ {valorLiquidoDetalhes.toFixed(2)}</p>
+                            </div>
+                        </div>
+
+                        <Separator className="col-span-full" />
+
+                        {/* --- LINHA 4: Informações Administrativas --- */}
+                        <div className="flex items-center gap-3">
+                            <CalendarDays className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                                <p className="text-xs text-muted-foreground">Vencimento</p>
+                                <p className="font-medium">Todo dia {detalhesCondominio.vencimento_boleto || 'N/A'}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            {detalhesCondominio.status === 'Ativo' ? <ShieldCheck className="h-5 w-5 text-green-600" /> : <ShieldX className="h-5 w-5 text-red-600" />}
+                            <div>
+                                <p className="text-xs text-muted-foreground">Situação</p>
+                                <Badge variant="outline" className={detalhesCondominio.status === 'Ativo' ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}>{detalhesCondominio.status}</Badge>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <FileCheck className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                                <p className="text-xs text-muted-foreground">Recebe Nota Fiscal</p>
+                                <Badge variant="outline" className={detalhesCondominio.recebe_nota_fiscal ? 'border-green-600 text-green-600' : 'border-red-600 text-red-600'}>{detalhesCondominio.recebe_nota_fiscal ? 'Sim' : 'Não'}</Badge>
+                            </div>
+                        </div>
+
+                        {/* --- LINHA 5: Transporte (Ocupando a linha inteira) --- */}
+                        <div className="col-span-full">
+                           <TransporteInfo condominio={detalhesCondominio} />
+                        </div>
                     </div>
-                </form>
-                </ScrollArea>
+
+                    <DialogFooter className="pt-2">
+                        <div className="flex-1" />
+                        <Button variant="outline" size="sm" className="h-8 px-4" onClick={closeDialog}>
+                            Fechar
+                        </Button>
+                    </DialogFooter>
+                </div>
+            ) : (
+              <ScrollArea className="flex-grow pr-6 -mr-6">
+              <form id="condo-form" onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                          <Label htmlFor="nome">Nome do Condomínio</Label>
+                          <Input id="nome" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} required placeholder="Ex: Condomínio Residencial Flores" />
+                      </div>
+                      
+                      <div className="space-y-2">
+                          <Label htmlFor="cnpj">CNPJ <span className="text-red-500">*</span></Label>
+                          <Input id="cnpj" value={formData.cnpj} onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })} required placeholder="00.000.000/0001-00" />
+                      </div>
+                      
+                      <div className="space-y-2 col-span-2">
+                          <Label htmlFor="endereco">Endereço Completo</Label>
+                          <Input id="endereco" value={formData.endereco} onChange={(e) => setFormData({ ...formData, endereco: e.target.value })} required placeholder="Ex: Rua das Flores, 123, Bairro, Cidade - MG" />
+                      </div>
+                      <div className="space-y-2">
+                          <Label htmlFor="sindico">Nome do Síndico(a)</Label>
+                          <Input id="sindico" value={formData.sindico} onChange={(e) => setFormData({ ...formData, sindico: e.target.value })} placeholder="Ex: João da Silva"/>
+                      </div>
+                      <div className="space-y-2">
+                          <Label htmlFor="telefone_sindico">Telefone do Síndico(a)</Label>
+                          <Input id="telefone_sindico" value={formData.telefone_sindico} onChange={(e) => setFormData({ ...formData, telefone_sindico: e.target.value })} placeholder="(31) 99999-9999" />
+                      </div>
+                      <div className="space-y-2 col-span-2">
+                          <Label htmlFor="email_sindico">Email do Síndico(a)</Label>
+                          <Input id="email_sindico" type="email" value={formData.email_sindico} onChange={(e) => setFormData({ ...formData, email_sindico: e.target.value })} placeholder="exemplo@email.com" />
+                      </div>
+                      <div className="space-y-2">
+                          <Label htmlFor="valor">Valor Mensal (R$)</Label>
+                          <Input id="valor" type="number" step="0.01" value={formData.valor_servico} onChange={(e) => setFormData({ ...formData, valor_servico: e.target.value })} placeholder="Ex: 750.50" />
+                      </div>
+                      <div className="space-y-2">
+                          <Label htmlFor="vencimento_boleto">Dia do Vencimento <span className="text-red-500">*</span></Label>
+                          <Select value={formData.vencimento_boleto} onValueChange={(value) => setFormData({ ...formData, vencimento_boleto: value })}>
+                              <SelectTrigger><SelectValue placeholder="Selecione o dia" /></SelectTrigger>
+                              <SelectContent>{Array.from({ length: 31 }, (_, i) => i + 1).map(day => (<SelectItem key={day} value={day.toString()}>{day}</SelectItem>))}</SelectContent>
+                          </Select>
+                      </div>
+                  </div>
+                  <Separator className="my-6" />
+                  
+                  <div className="space-y-2">
+                      <Label className="text-base font-medium">Controle Administrativo</Label>
+                      <div className="space-y-4 rounded-md border p-4">
+                          {/* Controle de Status */}
+                          <div className="flex items-center space-x-3">
+                              <Switch 
+                                  id="status" 
+                                  checked={formData.status === 'Ativo'} 
+                                  onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? 'Ativo' : 'Inativo' })} 
+                              />
+                              <Label htmlFor="status">Condomínio {formData.status}</Label>
+                          </div>
+          
+                          {/* Bloco da Nota Fiscal com campo de GPS aninhado */}
+                          <div className="space-y-2">
+                              <div className="flex items-center space-x-3">
+                                  <Switch 
+                                      id="recebe_nota_fiscal" 
+                                      checked={formData.recebe_nota_fiscal} 
+                                      onCheckedChange={(checked) => setFormData({ ...formData, recebe_nota_fiscal: checked })} 
+                                  />
+                                  <Label htmlFor="recebe_nota_fiscal">Recebe Nota Fiscal</Label>
+                              </div>
+                              
+                              {formData.recebe_nota_fiscal && (
+                                  <div className="pl-12 space-y-2 pt-2 animate-in fade-in-50">
+                                      <Label htmlFor="valor_inss">Valor do GPS</Label>
+                                      <Input 
+                                          id="valor_inss" 
+                                          type="number" 
+                                          step="0.01" 
+                                          value={formData.valor_inss} 
+                                          onChange={(e) => setFormData({ ...formData, valor_inss: e.target.value })} 
+                                          placeholder="Ex: 85.60"
+                                      />
+                                  </div>
+                              )}
+                          </div>
+                      </div>
+                  </div>
+                  <Separator className="my-6" />
+                  <div className="space-y-4">
+                      <Label className="text-base font-medium">Transporte</Label>
+                      <RadioGroup value={formData.transporte_tipo} onValueChange={(value) => setFormData({...formData, transporte_tipo: value})} className="flex space-x-4 pt-2">
+                          <div className="flex items-center space-x-2"><RadioGroupItem value="nenhum" id="nenhum"/><Label htmlFor="nenhum">Nenhum</Label></div>
+                          <div className="flex items-center space-x-2"><RadioGroupItem value="onibus" id="onibus"/><Label htmlFor="onibus">Ônibus</Label></div>
+                          <div className="flex items-center space-x-2"><RadioGroupItem value="veiculo_empresa" id="veiculo"/><Label htmlFor="veiculo">Veículo da Empresa</Label></div>
+                      </RadioGroup>
+                      {formData.transporte_tipo === 'onibus' && (
+                          <div ref={onibusFieldsContainerRef} className="space-y-2 pl-2 pt-1 border-l-2 ml-2">
+                              <Button type="button" variant="outline" size="sm" onClick={addLinhaField}><Plus className="h-4 w-4 mr-2"/>Adicionar Linha de Ônibus</Button>
+                              {linhasDeOnibus.length > 0 && linhasDeOnibus.map((onibus, index) => (
+                                  <div key={index} className="space-y-3 p-3 bg-muted/50 rounded-lg">
+                                      <div className="flex justify-between items-center">
+                                          <Label htmlFor={`linha-${index}`} className="font-semibold">Linha de Ônibus {index + 1}</Label>
+                                          <Button type="button" variant="ghost" size="icon" onClick={() => removeLinhaField(index)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
+                                      </div>
+                                      <Input id={`linha-${index}`} value={onibus.linha} onChange={(e) => handleLinhaChange(index, 'linha', e.target.value)} placeholder="Ex: 619, 617, 50" />
+                                      <RadioGroup value={onibus.tipo} onValueChange={(value) => handleLinhaChange(index, 'tipo', value)} className="flex space-x-4 pt-2">
+                                          <div className="flex items-center space-x-2"><RadioGroupItem value="bairro" id={`bairro-${index}`}/><Label htmlFor={`bairro-${index}`}>Bairro</Label></div>
+                                          <div className="flex items-center space-x-2"><RadioGroupItem value="move" id={`move-${index}`}/><Label htmlFor={`move-${index}`}>MOVE</Label></div>
+                                      </RadioGroup>
+                                  </div>
+                              ))}
+                          </div>
+                      )}
+                  </div>
+              </form>
+          </ScrollArea>
             )}
             {!detalhesCondominio && <DialogFooter className="pt-4"><Button type="button" variant="outline" onClick={closeDialog}>Cancelar</Button><Button type="submit" form="condo-form">{editingCondominio ? 'Salvar Alterações' : 'Cadastrar Condomínio'}</Button></DialogFooter>}
           </DialogContent>
         </Dialog>
       </div>
       
-      {/* --- MUDANÇA 3: Atualizado o placeholder da busca --- */}
       <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" /><Input type="text" placeholder="Pesquisar por nome, síndico, endereço ou CNPJ..." className="w-full pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -398,22 +551,18 @@ export function Condominios() {
                             <CardTitle className="text-lg text-foreground">{capitalizeWords(condominio.nome)}</CardTitle>
                             <p className="text-sm text-muted-foreground">{formatCNPJ(condominio.cnpj)}</p>
                         </div>
-                        {/* O Badge de status continua no cabeçalho do card para destaque visual */}
                         <Badge className={`text-xs px-2 py-1 rounded ${condominio.status === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>{condominio.status}</Badge>
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-3">
                             <div className="flex items-center gap-2 text-sm"><UserCircle className="w-4 h-4 text-muted-foreground" /><span>{capitalizeWords(condominio.sindico)}</span></div>
-
-                            {/* --- MUDANÇA 4: Reorganização do Status e Nota Fiscal no CARD --- */}
                             <div className="flex items-center gap-2 text-sm">
                                 <FileCheck className="w-4 h-4 text-muted-foreground" />
                                 <span className={`${condominio.recebe_nota_fiscal ? 'text-green-700' : 'text-red-700'}`}>
                                     {condominio.recebe_nota_fiscal ? 'Recebe Nota Fiscal' : 'Não recebe Nota Fiscal'}
                                 </span>
                             </div>
-
                             {condominio.recebe_nota_fiscal && condominio.valor_inss !== null && (
                               <div className="flex items-center gap-2 text-sm">
                                 <Compass className="w-4 h-4 text-muted-foreground" />
